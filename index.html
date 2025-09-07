@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Time Log & Task Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1f2937;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        /* Style for date/time picker icon */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.8);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100">
+
+    <div class="container mx-auto max-w-4xl p-4 sm:p-6 md:p-8">
+        
+        <!-- Header -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">Daily Time Log & Task Manager</h1>
+            <p class="text-gray-400 mt-2">Log your daily work hours and tasks with ease.</p>
+        </header>
+
+        <!-- Main Content: Form and Logs -->
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+            <!-- Logging Form Card -->
+            <div id="form-card" class="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
+                <h2 class="text-2xl font-semibold mb-6 border-b border-gray-600 pb-3">Create New Log</h2>
+                
+                <div class="space-y-6">
+                    <div>
+                        <label for="logDate" class="block text-sm font-medium text-gray-300 mb-2">Date</label>
+                        <input type="date" id="logDate" name="logDate" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3">
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="timeIn" class="block text-sm font-medium text-gray-300 mb-2">Time In</label>
+                            <input type="time" id="timeIn" name="timeIn" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3">
+                        </div>
+
+                        <div>
+                            <label for="timeOut" class="block text-sm font-medium text-gray-300 mb-2">Time Out</label>
+                            <input type="time" id="timeOut" name="timeOut" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label for="tasks" class="block text-sm font-medium text-gray-300 mb-2">Tasks for the Day</label>
+                        <textarea id="tasks" name="tasks" rows="6" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3" placeholder="Describe the tasks you completed..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="mt-8 flex flex-col sm:flex-row gap-4">
+                    <button id="saveLogBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-300 ease-in-out">
+                        Log Time & Tasks
+                    </button>
+                    <button id="clearFormBtn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-300 ease-in-out">
+                        Clear Form
+                    </button>
+                </div>
+            </div>
+
+            <!-- Log History Section -->
+            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 flex flex-col">
+                <h2 class="text-2xl font-semibold mb-4 border-b border-gray-600 pb-3">Log History</h2>
+                
+                <!-- Weekly Hours Display -->
+                <div id="weekly-summary" class="bg-gray-700/50 p-3 rounded-lg mb-6 text-center border border-gray-600">
+                    <p class="text-sm font-medium text-gray-300">Total Hours This Week</p>
+                    <p id="weeklyHours" class="text-3xl font-bold text-white mt-1">0.00</p>
+                </div>
+                
+                <!-- Calendar Section -->
+                <div id="calendar-container" class="mb-6">
+                    <!-- Calendar Header -->
+                    <div class="flex items-center justify-between mb-4">
+                        <button id="prevMonthBtn" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                        <h3 id="monthYear" class="text-lg font-semibold text-center"></h3>
+                        <button id="nextMonthBtn" class="p-2 rounded-full hover:bg-gray-700 transition-colors">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </button>
+                    </div>
+                    <!-- Calendar Grid -->
+                    <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center">
+                        <!-- Calendar will be populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Filter Info -->
+                <div id="filter-info" class="mb-4 text-center hidden">
+                    <p id="filter-text" class="text-gray-300 text-sm"></p>
+                    <button id="showAllBtn" class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold mt-1">Show All Logs</button>
+                </div>
+
+                <div id="logHistory" class="space-y-6 flex-grow overflow-y-auto pr-2 max-h-[60vh] md:max-h-[45vh]">
+                    <!-- Log entries will be injected here by JavaScript -->
+                </div>
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const logDateInput = document.getElementById('logDate');
+            const timeInInput = document.getElementById('timeIn');
+            const timeOutInput = document.getElementById('timeOut');
+            const tasksInput = document.getElementById('tasks');
+            const saveLogBtn = document.getElementById('saveLogBtn');
+            const clearFormBtn = document.getElementById('clearFormBtn');
+            const logHistoryContainer = document.getElementById('logHistory');
+
+            // Calendar elements
+            const prevMonthBtn = document.getElementById('prevMonthBtn');
+            const nextMonthBtn = document.getElementById('nextMonthBtn');
+            const monthYearEl = document.getElementById('monthYear');
+            const calendarGrid = document.getElementById('calendar-grid');
+            const filterInfo = document.getElementById('filter-info');
+            const filterText = document.getElementById('filter-text');
+            const showAllBtn = document.getElementById('showAllBtn');
+
+            // State variables
+            let currentDate = new Date();
+            let selectedDate = null;
+            let editingLogId = null;
+
+
+            // --- FUNCTIONS ---
+
+            const calculateAndDisplayWeeklyHours = () => {
+                const weeklyHoursEl = document.getElementById('weeklyHours');
+                if (!weeklyHoursEl) return;
+
+                const allLogs = JSON.parse(localStorage.getItem('timeLogs')) || [];
+                
+                // Base the calculation on the selected date's week, or the current week if none is selected
+                const referenceDate = selectedDate || new Date();
+                const dayOfWeek = referenceDate.getDay(); // 0=Sunday, 6=Saturday
+                
+                const startOfWeek = new Date(referenceDate);
+                startOfWeek.setDate(referenceDate.getDate() - dayOfWeek);
+                startOfWeek.setHours(0, 0, 0, 0);
+
+                const endOfWeek = new Date(startOfWeek);
+                endOfWeek.setDate(startOfWeek.getDate() + 6);
+                endOfWeek.setHours(23, 59, 59, 999);
+
+                const weeklyLogs = allLogs.filter(log => {
+                    const logDate = new Date(log.timeIn);
+                    return logDate >= startOfWeek && logDate <= endOfWeek;
+                });
+
+                const totalMilliseconds = weeklyLogs.reduce((total, log) => {
+                    const timeIn = new Date(log.timeIn);
+                    const timeOut = new Date(log.timeOut);
+                    if (isNaN(timeIn.getTime()) || isNaN(timeOut.getTime())) return total;
+                    const duration = timeOut.getTime() - timeIn.getTime();
+                    return total + (duration > 0 ? duration : 0);
+                }, 0);
+
+                const totalHours = totalMilliseconds / (1000 * 60 * 60);
+                
+                weeklyHoursEl.textContent = totalHours.toFixed(2);
+            };
+
+            const setCurrentDateAndTime = () => {
+                if (editingLogId) return;
+                
+                const now = new Date();
+                
+                // Format for date input: YYYY-MM-DD
+                const year = now.getFullYear();
+                const month = (now.getMonth() + 1).toString().padStart(2, '0');
+                const day = now.getDate().toString().padStart(2, '0');
+                logDateInput.value = `${year}-${month}-${day}`;
+
+                // Format for time input: HH:mm
+                const hours = now.getHours().toString().padStart(2, '0');
+                const minutes = now.getMinutes().toString().padStart(2, '0');
+                const currentTime = `${hours}:${minutes}`;
+                
+                timeInInput.value = currentTime;
+                timeOutInput.value = currentTime;
+            };
+
+            const formatDateTime = (isoString) => {
+                if (!isoString) return 'N/A';
+                try {
+                    const date = new Date(isoString);
+                    return date.toLocaleString('en-US', {
+                        year: 'numeric', month: 'short', day: 'numeric',
+                        hour: 'numeric', minute: '2-digit', hour12: true
+                    });
+                } catch (error) {
+                    console.error('Error formatting date:', error);
+                    return 'Invalid Date';
+                }
+            };
+
+            const renderCalendar = () => {
+                const year = currentDate.getFullYear();
+                const month = currentDate.getMonth();
+                monthYearEl.textContent = `${currentDate.toLocaleDateString('en-US', { month: 'long' })} ${year}`;
+                calendarGrid.innerHTML = '';
+
+                const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                daysOfWeek.forEach(day => {
+                    const dayEl = document.createElement('div');
+                    dayEl.className = 'font-semibold text-xs text-gray-400 uppercase';
+                    dayEl.textContent = day;
+                    calendarGrid.appendChild(dayEl);
+                });
+
+                const firstDayOfMonth = new Date(year, month, 1).getDay();
+                const daysInMonth = new Date(year, month + 1, 0).getDate();
+                const logs = JSON.parse(localStorage.getItem('timeLogs')) || [];
+                const logDates = new Set(logs.map(log => new Date(log.timeIn).toDateString()));
+
+                for (let i = 0; i < firstDayOfMonth; i++) {
+                    calendarGrid.appendChild(document.createElement('div'));
+                }
+
+                for (let day = 1; day <= daysInMonth; day++) {
+                    const dayEl = document.createElement('button');
+                    const dayDate = new Date(year, month, day);
+                    dayEl.textContent = day;
+                    dayEl.dataset.date = dayDate.toISOString();
+                    
+                    let classes = 'p-1 h-8 w-8 flex items-center justify-center rounded-full text-sm transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500';
+
+                    if (logDates.has(dayDate.toDateString())) {
+                         classes += ' font-bold text-indigo-300';
+                    }
+                    
+                    if (selectedDate && dayDate.toDateString() === selectedDate.toDateString()) {
+                         classes += ' bg-indigo-600 text-white';
+                    } else if (!selectedDate && dayDate.toDateString() === new Date().toDateString()) {
+                        classes += ' bg-gray-600 text-white';
+                    } else {
+                        classes += ' hover:bg-gray-700';
+                    }
+                    dayEl.className = classes;
+                    calendarGrid.appendChild(dayEl);
+                }
+            };
+
+            const renderLogs = (filterDate = null) => {
+                const allLogs = JSON.parse(localStorage.getItem('timeLogs')) || [];
+                let logsToRender = allLogs;
+
+                if (filterDate) {
+                    logsToRender = allLogs.filter(log => new Date(log.timeIn).toDateString() === filterDate.toDateString());
+                    filterInfo.classList.remove('hidden');
+                    filterText.textContent = `Showing logs for ${filterDate.toLocaleDateString('en-US', { dateStyle: 'long' })}`;
+                } else {
+                    filterInfo.classList.add('hidden');
+                }
+                
+                logsToRender.sort((a, b) => new Date(b.timeIn) - new Date(a.timeIn));
+                logHistoryContainer.innerHTML = '';
+
+                if (logsToRender.length === 0) {
+                    const noLogsMsg = document.createElement('p');
+                    noLogsMsg.className = 'text-gray-400 text-center py-8';
+                    noLogsMsg.textContent = filterDate ? 'No logs found for this date.' : 'No logs yet. Create your first one!';
+                    logHistoryContainer.appendChild(noLogsMsg);
+                } else {
+                    logsToRender.forEach(log => {
+                        const logCard = document.createElement('div');
+                        logCard.className = 'bg-gray-700 p-4 rounded-lg border border-gray-600 shadow-sm';
+
+                        let loggedHoursText = '0.00';
+                        try {
+                            const timeIn = new Date(log.timeIn);
+                            const timeOut = new Date(log.timeOut);
+                            if (!isNaN(timeIn.getTime()) && !isNaN(timeOut.getTime())) {
+                                const duration = timeOut.getTime() - timeIn.getTime();
+                                if (duration >= 0) {
+                                    const hours = duration / (1000 * 60 * 60);
+                                    loggedHoursText = hours.toFixed(2);
+                                }
+                            }
+                        } catch (e) {
+                            console.error("Could not calculate log hours", e);
+                        }
+
+                        logCard.innerHTML = `
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <p class="text-md font-semibold text-white">${formatDateTime(log.timeIn).split(',')[0]}</p>
+                                    <div class="text-sm text-gray-300 mt-2">
+                                        <p><strong class="font-medium text-gray-100">Time In:</strong> ${formatDateTime(log.timeIn)}</p>
+                                        <p><strong class="font-medium text-gray-100">Time Out:</strong> ${formatDateTime(log.timeOut)}</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <button data-id="${log.id}" class="edit-btn text-gray-400 hover:text-indigo-400 transition-colors duration-200 p-1 rounded-full">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                                    </button>
+                                    <button data-id="${log.id}" class="delete-btn text-gray-400 hover:text-red-500 transition-colors duration-200 p-1 rounded-full">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" /></svg>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-4 pt-3 border-t border-gray-600 flex justify-between items-end">
+                                <div class="w-2/3">
+                                    <h4 class="font-semibold text-gray-200 mb-2">Tasks Completed:</h4>
+                                    <p class="text-gray-300 whitespace-pre-wrap text-sm">${log.tasks}</p>
+                                </div>
+                                <div class="text-right flex-shrink-0 ml-4">
+                                    <p class="text-sm text-gray-300">Total:</p>
+                                    <p class="font-bold text-lg text-white">${loggedHoursText} hrs</p>
+                                </div>
+                            </div>`;
+                        logHistoryContainer.appendChild(logCard);
+                    });
+                }
+            };
+            
+            const saveOrUpdateLog = () => {
+                const logDate = logDateInput.value;
+                const timeIn = timeInInput.value;
+                const timeOut = timeOutInput.value;
+                const tasks = tasksInput.value.trim();
+
+                if (!logDate || !timeIn || !timeOut || !tasks) {
+                    alert('Please fill out all fields before saving.');
+                    return;
+                }
+                
+                // Combine date and time into full ISO strings for storage
+                const timeInISO = new Date(`${logDate}T${timeIn}`).toISOString();
+                const timeOutISO = new Date(`${logDate}T${timeOut}`).toISOString();
+                
+                const logs = JSON.parse(localStorage.getItem('timeLogs')) || [];
+
+                if (editingLogId) { // This is an update
+                    const logIndex = logs.findIndex(log => log.id === editingLogId);
+                    if (logIndex > -1) {
+                        logs[logIndex] = { ...logs[logIndex], timeIn: timeInISO, timeOut: timeOutISO, tasks };
+                    }
+                } else { // This is a new log
+                    const newLog = { id: Date.now(), timeIn: timeInISO, timeOut: timeOutISO, tasks };
+                    logs.push(newLog);
+                }
+
+                localStorage.setItem('timeLogs', JSON.stringify(logs));
+                resetFormState();
+                renderCalendar();
+                renderLogs(selectedDate);
+                calculateAndDisplayWeeklyHours();
+            };
+
+            const deleteLog = (id) => {
+                let logs = JSON.parse(localStorage.getItem('timeLogs')) || [];
+                logs = logs.filter(log => log.id !== parseInt(id));
+                localStorage.setItem('timeLogs', JSON.stringify(logs));
+                renderCalendar();
+                renderLogs(selectedDate);
+                calculateAndDisplayWeeklyHours();
+            };
+
+            const resetFormState = () => {
+                editingLogId = null;
+                tasksInput.value = '';
+                saveLogBtn.textContent = 'Log Time & Tasks';
+                clearFormBtn.textContent = 'Clear Form';
+                setCurrentDateAndTime();
+                saveLogBtn.blur();
+                clearFormBtn.blur();
+            };
+
+            // --- EVENT LISTENERS ---
+
+            saveLogBtn.addEventListener('click', saveOrUpdateLog);
+            
+            clearFormBtn.addEventListener('click', () => {
+                if(editingLogId) {
+                    resetFormState(); // On cancel, reset the whole form state
+                } else {
+                    // On clear, just empty tasks and reset time
+                    tasksInput.value = '';
+                    setCurrentDateAndTime();
+                }
+            });
+
+            logHistoryContainer.addEventListener('click', (e) => {
+                const deleteButton = e.target.closest('.delete-btn');
+                const editButton = e.target.closest('.edit-btn');
+
+                if (deleteButton) {
+                    const logId = deleteButton.dataset.id;
+                    if (editingLogId && editingLogId === parseInt(logId)) {
+                        resetFormState();
+                    }
+                    deleteLog(logId);
+                }
+
+                if (editButton) {
+                    const logId = parseInt(editButton.dataset.id);
+                    const logs = JSON.parse(localStorage.getItem('timeLogs')) || [];
+                    const logToEdit = logs.find(log => log.id === logId);
+
+                    if (logToEdit) {
+                        const timeInDate = new Date(logToEdit.timeIn);
+                        const timeOutDate = new Date(logToEdit.timeOut);
+                        
+                        logDateInput.value = timeInDate.toISOString().slice(0, 10);
+                        timeInInput.value = timeInDate.toTimeString().slice(0, 5);
+                        timeOutInput.value = timeOutDate.toTimeString().slice(0, 5);
+                        tasksInput.value = logToEdit.tasks;
+
+                        editingLogId = logId;
+                        saveLogBtn.textContent = 'Update Log';
+                        clearFormBtn.textContent = 'Cancel Edit';
+
+                        document.getElementById('form-card').scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        tasksInput.focus();
+                    }
+                }
+            });
+
+            prevMonthBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() - 1);
+                renderCalendar();
+            });
+
+            nextMonthBtn.addEventListener('click', () => {
+                currentDate.setMonth(currentDate.getMonth() + 1);
+                renderCalendar();
+            });
+
+            calendarGrid.addEventListener('click', (e) => {
+                const dayButton = e.target.closest('button[data-date]');
+                if (!dayButton) return;
+                
+                const clickedDate = new Date(dayButton.dataset.date);
+                
+                // FIX: Build date string from local components to avoid timezone issues with toISOString()
+                const year = clickedDate.getFullYear();
+                const month = (clickedDate.getMonth() + 1).toString().padStart(2, '0');
+                const day = clickedDate.getDate().toString().padStart(2, '0');
+                logDateInput.value = `${year}-${month}-${day}`;
+
+                if (selectedDate && selectedDate.toDateString() === clickedDate.toDateString()) {
+                    selectedDate = null; 
+                } else {
+                    selectedDate = clickedDate;
+                }
+                
+                if(editingLogId) {
+                    resetFormState();
+                }
+                
+                renderCalendar();
+                renderLogs(selectedDate);
+                calculateAndDisplayWeeklyHours();
+            });
+
+            showAllBtn.addEventListener('click', () => {
+                selectedDate = null;
+                if(editingLogId) {
+                    resetFormState();
+                }
+                renderCalendar();
+                renderLogs();
+                calculateAndDisplayWeeklyHours();
+            });
+
+            // Initial render on page load
+            setCurrentDateAndTime();
+            renderCalendar();
+            renderLogs();
+            calculateAndDisplayWeeklyHours();
+        });
+    </script>
+
+</body>
+</html>
+
