@@ -185,6 +185,7 @@
                 dateFormat: "Y-m-d", // Machine-readable format for the input's value
                 altInput: true,      // Create a separate, user-friendly visible input
                 altFormat: "F j, Y", // How the date is displayed to the user
+                disableMobile: true  // Force web picker on mobile
             });
 
             const timeInPicker = flatpickr("#timeIn", {
@@ -192,6 +193,7 @@
                 noCalendar: true,
                 dateFormat: "H:i", // 24-hour format for robust parsing
                 time_24hr: true,
+                disableMobile: true // Force web picker on mobile
             });
 
             const timeOutPicker = flatpickr("#timeOut", {
@@ -199,6 +201,7 @@
                 noCalendar: true,
                 dateFormat: "H:i",
                 time_24hr: true,
+                disableMobile: true // Force web picker on mobile
             });
 
             // --- FUNCTIONS ---
