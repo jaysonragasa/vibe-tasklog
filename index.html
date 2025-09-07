@@ -8,6 +8,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Flatpickr styles for custom date/time picker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -26,11 +29,23 @@
         ::-webkit-scrollbar-thumb:hover {
             background: #6b7280;
         }
-        /* Style for date/time picker icon */
-        input[type="date"]::-webkit-calendar-picker-indicator,
-        input[type="time"]::-webkit-calendar-picker-indicator {
-            filter: invert(0.8);
-            cursor: pointer;
+        /* Custom styles to better integrate Flatpickr's dark theme */
+        .flatpickr-calendar {
+            background: #1f2937;
+            border: 1px solid #4b5563;
+        }
+        .flatpickr-day:hover, .flatpickr-day:focus {
+            background: #374151;
+        }
+        .flatpickr-day.selected {
+            background: #4f46e5;
+            border-color: #4f46e5;
+        }
+        .flatpickr-time input:hover, .flatpickr-time .flatpickr-am-pm:hover {
+            background: #4b5563;
+        }
+        .numInput:focus, .numInput:hover {
+            border-color: #4f46e5;
         }
     </style>
 </head>
@@ -54,18 +69,18 @@
                 <div class="space-y-6">
                     <div>
                         <label for="logDate" class="block text-sm font-medium text-gray-300 mb-2">Date</label>
-                        <input type="date" id="logDate" name="logDate" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3">
+                        <input type="text" id="logDate" name="logDate" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3" placeholder="Select a date...">
                     </div>
 
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label for="timeIn" class="block text-sm font-medium text-gray-300 mb-2">Time In</label>
-                            <input type="time" id="timeIn" name="timeIn" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3">
+                            <input type="text" id="timeIn" name="timeIn" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3" placeholder="Select a time...">
                         </div>
 
                         <div>
                             <label for="timeOut" class="block text-sm font-medium text-gray-300 mb-2">Time Out</label>
-                            <input type="time" id="timeOut" name="timeOut" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3">
+                            <input type="text" id="timeOut" name="timeOut" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3" placeholder="Select a time...">
                         </div>
                     </div>
                     
@@ -91,9 +106,16 @@
                 <h2 class="text-2xl font-semibold mb-4 border-b border-gray-600 pb-3">Log History</h2>
                 
                 <!-- Weekly Hours Display -->
-                <div id="weekly-summary" class="bg-gray-700/50 p-3 rounded-lg mb-6 text-center border border-gray-600">
+                <div id="weekly-summary" class="bg-gray-700/50 p-3 rounded-lg mb-4 text-center border border-gray-600">
                     <p class="text-sm font-medium text-gray-300">Total Hours This Week</p>
                     <p id="weeklyHours" class="text-3xl font-bold text-white mt-1">0.00</p>
+                </div>
+
+                <!-- Import/Export Buttons -->
+                <div class="flex flex-col sm:flex-row gap-3 mb-6">
+                    <button id="exportLogsBtn" class="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">Export Logs</button>
+                    <label for="importFile" class="w-full text-sm text-center cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">Import Logs</label>
+                    <input type="file" id="importFile" class="hidden" accept=".json">
                 </div>
                 
                 <!-- Calendar Section -->
@@ -125,8 +147,10 @@
                 </div>
             </div>
         </main>
-
     </div>
+
+    <!-- Flatpickr script -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -137,6 +161,10 @@
             const saveLogBtn = document.getElementById('saveLogBtn');
             const clearFormBtn = document.getElementById('clearFormBtn');
             const logHistoryContainer = document.getElementById('logHistory');
+
+            // Import/Export elements
+            const exportLogsBtn = document.getElementById('exportLogsBtn');
+            const importFile = document.getElementById('importFile');
 
             // Calendar elements
             const prevMonthBtn = document.getElementById('prevMonthBtn');
@@ -152,6 +180,26 @@
             let selectedDate = null;
             let editingLogId = null;
 
+            // --- FLATPCIKR INSTANCES ---
+            const datePicker = flatpickr("#logDate", {
+                dateFormat: "Y-m-d", // Machine-readable format for the input's value
+                altInput: true,      // Create a separate, user-friendly visible input
+                altFormat: "F j, Y", // How the date is displayed to the user
+            });
+
+            const timeInPicker = flatpickr("#timeIn", {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: "H:i", // 24-hour format for robust parsing
+                time_24hr: true,
+            });
+
+            const timeOutPicker = flatpickr("#timeOut", {
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: "H:i",
+                time_24hr: true,
+            });
 
             // --- FUNCTIONS ---
 
@@ -161,9 +209,8 @@
 
                 const allLogs = JSON.parse(localStorage.getItem('timeLogs')) || [];
                 
-                // Base the calculation on the selected date's week, or the current week if none is selected
                 const referenceDate = selectedDate || new Date();
-                const dayOfWeek = referenceDate.getDay(); // 0=Sunday, 6=Saturday
+                const dayOfWeek = referenceDate.getDay();
                 
                 const startOfWeek = new Date(referenceDate);
                 startOfWeek.setDate(referenceDate.getDate() - dayOfWeek);
@@ -187,7 +234,6 @@
                 }, 0);
 
                 const totalHours = totalMilliseconds / (1000 * 60 * 60);
-                
                 weeklyHoursEl.textContent = totalHours.toFixed(2);
             };
 
@@ -195,20 +241,14 @@
                 if (editingLogId) return;
                 
                 const now = new Date();
-                
-                // Format for date input: YYYY-MM-DD
-                const year = now.getFullYear();
-                const month = (now.getMonth() + 1).toString().padStart(2, '0');
-                const day = now.getDate().toString().padStart(2, '0');
-                logDateInput.value = `${year}-${month}-${day}`;
+                datePicker.setDate(now);
 
-                // Format for time input: HH:mm
                 const hours = now.getHours().toString().padStart(2, '0');
                 const minutes = now.getMinutes().toString().padStart(2, '0');
                 const currentTime = `${hours}:${minutes}`;
                 
-                timeInInput.value = currentTime;
-                timeOutInput.value = currentTime;
+                timeInPicker.setDate(currentTime);
+                timeOutPicker.setDate(currentTime);
             };
 
             const formatDateTime = (isoString) => {
@@ -356,18 +396,17 @@
                     return;
                 }
                 
-                // Combine date and time into full ISO strings for storage
                 const timeInISO = new Date(`${logDate}T${timeIn}`).toISOString();
                 const timeOutISO = new Date(`${logDate}T${timeOut}`).toISOString();
                 
                 const logs = JSON.parse(localStorage.getItem('timeLogs')) || [];
 
-                if (editingLogId) { // This is an update
+                if (editingLogId) {
                     const logIndex = logs.findIndex(log => log.id === editingLogId);
                     if (logIndex > -1) {
                         logs[logIndex] = { ...logs[logIndex], timeIn: timeInISO, timeOut: timeOutISO, tasks };
                     }
-                } else { // This is a new log
+                } else {
                     const newLog = { id: Date.now(), timeIn: timeInISO, timeOut: timeOutISO, tasks };
                     logs.push(newLog);
                 }
@@ -397,16 +436,60 @@
                 saveLogBtn.blur();
                 clearFormBtn.blur();
             };
+            
+            const handleExport = () => {
+                const logs = localStorage.getItem('timeLogs') || '[]';
+                const blob = new Blob([logs], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `timelogs_backup_${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            };
+
+            const handleImport = (event) => {
+                const file = event.target.files[0];
+                if (!file) {
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedLogs = JSON.parse(e.target.result);
+                        if (!Array.isArray(importedLogs)) {
+                           throw new Error("Imported data is not an array.");
+                        }
+                        const isValid = importedLogs.every(log => 'id' in log && 'timeIn' in log && 'timeOut' in log && 'tasks' in log);
+                        if (!isValid) {
+                            throw new Error("Imported data has incorrect structure.");
+                        }
+                        const currentLogs = JSON.parse(localStorage.getItem('timeLogs')) || [];
+                        const currentLogIds = new Set(currentLogs.map(log => log.id));
+                        const newLogs = importedLogs.filter(log => !currentLogIds.has(log.id));
+                        const mergedLogs = [...currentLogs, ...newLogs];
+                        localStorage.setItem('timeLogs', JSON.stringify(mergedLogs));
+                        renderCalendar();
+                        renderLogs(selectedDate);
+                        calculateAndDisplayWeeklyHours();
+                        alert(`${newLogs.length} new logs imported successfully!`);
+                    } catch (error) {
+                        alert('Error importing file: ' + error.message);
+                    } finally {
+                        event.target.value = null;
+                    }
+                };
+                reader.readAsText(file);
+            };
 
             // --- EVENT LISTENERS ---
-
             saveLogBtn.addEventListener('click', saveOrUpdateLog);
-            
             clearFormBtn.addEventListener('click', () => {
                 if(editingLogId) {
-                    resetFormState(); // On cancel, reset the whole form state
+                    resetFormState();
                 } else {
-                    // On clear, just empty tasks and reset time
                     tasksInput.value = '';
                     setCurrentDateAndTime();
                 }
@@ -433,9 +516,9 @@
                         const timeInDate = new Date(logToEdit.timeIn);
                         const timeOutDate = new Date(logToEdit.timeOut);
                         
-                        logDateInput.value = timeInDate.toISOString().slice(0, 10);
-                        timeInInput.value = timeInDate.toTimeString().slice(0, 5);
-                        timeOutInput.value = timeOutDate.toTimeString().slice(0, 5);
+                        datePicker.setDate(timeInDate, true);
+                        timeInPicker.setDate(timeInDate, true);
+                        timeOutPicker.setDate(timeOutDate, true);
                         tasksInput.value = logToEdit.tasks;
 
                         editingLogId = logId;
@@ -463,12 +546,7 @@
                 if (!dayButton) return;
                 
                 const clickedDate = new Date(dayButton.dataset.date);
-                
-                // FIX: Build date string from local components to avoid timezone issues with toISOString()
-                const year = clickedDate.getFullYear();
-                const month = (clickedDate.getMonth() + 1).toString().padStart(2, '0');
-                const day = clickedDate.getDate().toString().padStart(2, '0');
-                logDateInput.value = `${year}-${month}-${day}`;
+                datePicker.setDate(clickedDate, true);
 
                 if (selectedDate && selectedDate.toDateString() === clickedDate.toDateString()) {
                     selectedDate = null; 
@@ -495,6 +573,9 @@
                 calculateAndDisplayWeeklyHours();
             });
 
+            exportLogsBtn.addEventListener('click', handleExport);
+            importFile.addEventListener('change', handleImport);
+
             // Initial render on page load
             setCurrentDateAndTime();
             renderCalendar();
@@ -502,7 +583,6 @@
             calculateAndDisplayWeeklyHours();
         });
     </script>
-
 </body>
 </html>
 
