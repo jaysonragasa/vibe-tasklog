@@ -55,10 +55,13 @@
             <div class="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 flex flex-col">
                 <h2 class="text-2xl font-semibold mb-4 border-b border-gray-600 pb-3">Log History</h2>
                 
-                <div class="flex flex-col sm:flex-row gap-3 mb-4">
-                    <button id="exportLogsBtn" class="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">Export Logs</button>
-                    <label for="importFile" class="w-full text-sm text-center cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">Import Logs</label>
-                    <input type="file" id="importFile" class="hidden" accept=".json">
+                <div class="space-y-3 mb-4">
+                    <div class="flex flex-col sm:flex-row gap-3">
+                        <button id="exportLogsBtn" class="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">Export Logs</button>
+                        <label for="importFile" class="w-full text-sm text-center cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">Import Logs</label>
+                        <input type="file" id="importFile" class="hidden" accept=".json">
+                    </div>
+                    <button id="clearAllBtn" class="w-full text-sm bg-red-800 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200 hidden">Clear All Logs</button>
                 </div>
 
                 <div id="calendar-container" class="mb-4">
@@ -166,9 +169,10 @@
                 cancelTimeBtn: document.getElementById('cancelTimeBtn'),
                 // Toast
                 toast: document.getElementById('toast'),
-                // Import/Export
+                // Import/Export/Clear
                 exportLogsBtn: document.getElementById('exportLogsBtn'),
                 importFile: document.getElementById('importFile'),
+                clearAllBtn: document.getElementById('clearAllBtn'),
             },
 
             // --- DATA STORE (LocalStorage) ---
@@ -190,6 +194,11 @@
                     this.ui.showClockInState();
                 } else {
                     this.ui.showClockOutState();
+                }
+
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('wcb') === '1') {
+                    this.ui.clearAllBtn.classList.remove('hidden');
                 }
                 
                 this.render();
@@ -216,6 +225,7 @@
                 
                 this.ui.exportLogsBtn.addEventListener('click', () => this.handleExport());
                 this.ui.importFile.addEventListener('change', (e) => this.handleImport(e));
+                this.ui.clearAllBtn.addEventListener('click', () => this.handleClearAll());
             },
 
             // --- EVENT HANDLERS ---
@@ -386,6 +396,19 @@
                 };
                 reader.readAsText(file);
             },
+
+            handleClearAll() {
+                if (confirm('Are you sure you want to permanently delete ALL logs? This action cannot be undone.')) {
+                    this.store.saveLogs([]); // Clears completed logs
+                    if (this.state.activeLog) {
+                        this.state.activeLog = null;
+                        this.store.clearActiveLog(); // Clears active log
+                        this.ui.showClockOutState();
+                    }
+                    this.ui.showToast('All logs have been cleared.');
+                    this.render();
+                }
+            },
             
             // --- RENDER & CALCULATION ---
             render() {
@@ -477,7 +500,7 @@
             
             for (let day = 1; day <= daysInMonth; day++) {
                 const dayDate = new Date(year, month, day);
-                const dayDateString = dayDate.toISOString().split('T')[0];
+                const dayDateString = TimeLoggerApp.methods.getLocalYYYYMMDD(dayDate);
                 let classes = 'p-1 h-8 w-8 flex items-center justify-center rounded-full text-sm transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500';
                 if (logDates.has(dayDateString)) classes += ' font-bold text-indigo-300';
                 if (selectedDate && dayDate.toDateString() === selectedDate.toDateString()) classes += ' bg-indigo-600 text-white';
@@ -502,7 +525,7 @@
             if (selectedDate) {
                 this.filterInfo.classList.remove('hidden');
                 this.filterText.textContent = `Showing logs for ${selectedDate.toLocaleDateString('en-US', { dateStyle: 'long' })}`;
-                const dateStr = selectedDate.toISOString().split('T')[0];
+                const dateStr = TimeLoggerApp.methods.getLocalYYYYMMDD(selectedDate);
                 if (logsByDate[dateStr]) {
                     logsByDate[dateStr].forEach(log => this.logHistoryContainer.appendChild(this.createLogCard(log)));
                 }
@@ -511,7 +534,8 @@
                 const sortedDates = Object.keys(logsByDate).sort((a,b) => new Date(b) - new Date(a));
                 sortedDates.forEach(dateStr => {
                     const date = new Date(dateStr);
-                    const formattedDate = date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                    const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000); // Adjust for display
+                    const formattedDate = localDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
                     const dateHeader = document.createElement('h3');
                     dateHeader.className = "text-lg font-semibold text-indigo-300 pb-2 border-b border-gray-700";
                     dateHeader.textContent = formattedDate;
