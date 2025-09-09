@@ -55,6 +55,12 @@
             <div class="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 flex flex-col">
                 <h2 class="text-2xl font-semibold mb-4 border-b border-gray-600 pb-3">Log History</h2>
                 
+                <div class="flex flex-col sm:flex-row gap-3 mb-4">
+                    <button id="exportLogsBtn" class="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">Export Logs</button>
+                    <label for="importFile" class="w-full text-sm text-center cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">Import Logs</label>
+                    <input type="file" id="importFile" class="hidden" accept=".json">
+                </div>
+
                 <div id="calendar-container" class="mb-4">
                     <div class="flex items-center justify-between mb-4">
                         <button id="prevMonthBtn" class="p-2 rounded-full hover:bg-gray-700 transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
@@ -160,6 +166,9 @@
                 cancelTimeBtn: document.getElementById('cancelTimeBtn'),
                 // Toast
                 toast: document.getElementById('toast'),
+                // Import/Export
+                exportLogsBtn: document.getElementById('exportLogsBtn'),
+                importFile: document.getElementById('importFile'),
             },
 
             // --- DATA STORE (LocalStorage) ---
@@ -204,6 +213,9 @@
 
                 this.ui.cancelTimeBtn.addEventListener('click', () => this.ui.closeTimeModal());
                 this.ui.saveTimeBtn.addEventListener('click', () => this.handleSaveTimeEdit());
+                
+                this.ui.exportLogsBtn.addEventListener('click', () => this.handleExport());
+                this.ui.importFile.addEventListener('change', (e) => this.handleImport(e));
             },
 
             // --- EVENT HANDLERS ---
@@ -330,6 +342,49 @@
                 this.ui.showToast('Time updated!');
                 this.ui.closeTimeModal();
                 this.render();
+            },
+
+            handleExport() {
+                const logs = this.store.getLogs();
+                if (logs.length === 0) {
+                    return this.ui.showToast('No logs to export.');
+                }
+                const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `timelogs_backup_${new Date().toISOString().slice(0,10)}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            },
+
+            handleImport(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedLogs = JSON.parse(e.target.result);
+                        if (!Array.isArray(importedLogs) || !importedLogs.every(log => 'id' in log && 'timeIn' in log)) {
+                           throw new Error("Invalid log file format.");
+                        }
+                        const currentLogs = this.store.getLogs();
+                        const currentLogIds = new Set(currentLogs.map(log => log.id));
+                        const newLogs = importedLogs.filter(log => !currentLogIds.has(log.id));
+                        
+                        this.store.saveLogs([...currentLogs, ...newLogs]);
+                        
+                        this.render();
+                        this.ui.showToast(`${newLogs.length} new logs imported successfully!`);
+                    } catch (error) {
+                        alert('Error importing file: ' + error.message);
+                    } finally {
+                        event.target.value = null; // Reset file input
+                    }
+                };
+                reader.readAsText(file);
             },
             
             // --- RENDER & CALCULATION ---
