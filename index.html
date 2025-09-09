@@ -24,6 +24,12 @@
             transform: translateY(20px);
         }
         .toast.show { visibility: visible; opacity: 1; transform: translateY(0); }
+        
+        /* Style for date/time picker icon */
+        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.8);
+            cursor: pointer;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-100">
@@ -38,17 +44,23 @@
         <main class="grid grid-cols-1 md:grid-cols-2 gap-8">
 
             <div id="form-card" class="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
-                <h2 class="text-2xl font-semibold mb-6 border-b border-gray-600 pb-3">Today's Session</h2>
+                <h2 class="text-2xl font-semibold mb-6 border-b border-gray-600 pb-3">Session Control</h2>
 
-                <div class="mb-6">
-                     <button id="clockInBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-300 ease-in-out">Clock In</button>
-                     <button id="clockOutBtn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-300 ease-in-out hidden">Clock Out</button>
-                </div>
+                <div class="space-y-4">
+                    <div class="mb-6">
+                         <button id="clockInBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-300 ease-in-out">Clock In</button>
+                         <button id="clockOutBtn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-300 ease-in-out hidden">Clock Out</button>
+                    </div>
 
-                <div id="task-section" class="hidden">
-                    <label for="taskInput" class="block text-sm font-medium text-gray-300 mb-2">Add a Task</label>
-                    <textarea id="taskInput" name="taskInput" rows="3" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3" placeholder="What are you working on?"></textarea>
-                    <button id="addTaskBtn" class="w-full mt-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-300 ease-in-out">Add Task</button>
+                    <div id="task-section" class="hidden">
+                        <label for="taskInput" class="block text-sm font-medium text-gray-300 mb-2">Add a Task</label>
+                        <textarea id="taskInput" name="taskInput" rows="3" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3" placeholder="What are you working on?"></textarea>
+                        <button id="addTaskBtn" class="w-full mt-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-300 ease-in-out">Add Task</button>
+                    </div>
+
+                    <div class="pt-4 border-t border-gray-700/50">
+                        <button id="addManualLogBtn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">Add Manual Log</button>
+                    </div>
                 </div>
             </div>
 
@@ -86,6 +98,31 @@
                 <div id="logHistory" class="space-y-6 flex-grow overflow-y-auto pr-2 max-h-[60vh] md:max-h-[45vh]"></div>
             </div>
         </main>
+    </div>
+    
+    <!-- Add Manual Log Modal -->
+    <div id="addManualLogModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 w-full max-w-md">
+            <h2 class="text-2xl font-semibold mb-6">Add Manual Log Entry</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="manualTimeIn" class="block text-sm font-medium text-gray-300 mb-2">Time In</label>
+                    <input type="datetime-local" id="manualTimeIn" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 p-3">
+                </div>
+                <div>
+                    <label for="manualTimeOut" class="block text-sm font-medium text-gray-300 mb-2">Time Out</label>
+                    <input type="datetime-local" id="manualTimeOut" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 p-3">
+                </div>
+                <div>
+                    <label for="manualTasks" class="block text-sm font-medium text-gray-300 mb-2">Tasks (one per line)</label>
+                    <textarea id="manualTasks" rows="4" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 p-3"></textarea>
+                </div>
+            </div>
+            <div class="mt-8 flex gap-4">
+                <button id="saveManualLogBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md">Save Log</button>
+                <button id="cancelManualLogBtn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg shadow-md">Cancel</button>
+            </div>
+        </div>
     </div>
 
     <!-- Edit Task Modal -->
@@ -142,6 +179,7 @@
                 taskSection: document.getElementById('task-section'),
                 taskInput: document.getElementById('taskInput'),
                 addTaskBtn: document.getElementById('addTaskBtn'),
+                addManualLogBtn: document.getElementById('addManualLogBtn'),
                 // History
                 logHistoryContainer: document.getElementById('logHistory'),
                 summaryTitle: document.getElementById('summary-title'),
@@ -155,6 +193,13 @@
                 filterText: document.getElementById('filter-text'),
                 showAllBtn: document.getElementById('showAllBtn'),
                 // Modals
+                addManualLogModal: document.getElementById('addManualLogModal'),
+                manualTimeIn: document.getElementById('manualTimeIn'),
+                manualTimeOut: document.getElementById('manualTimeOut'),
+                manualTasks: document.getElementById('manualTasks'),
+                saveManualLogBtn: document.getElementById('saveManualLogBtn'),
+                cancelManualLogBtn: document.getElementById('cancelManualLogBtn'),
+
                 editTaskModal: document.getElementById('editTaskModal'),
                 editTaskTimeRange: document.getElementById('editTaskTimeRange'),
                 editTaskInput: document.getElementById('editTaskInput'),
@@ -209,6 +254,7 @@
                 this.ui.clockInBtn.addEventListener('click', () => this.handleClockIn());
                 this.ui.clockOutBtn.addEventListener('click', () => this.handleClockOut());
                 this.ui.addTaskBtn.addEventListener('click', () => this.handleAddTask());
+                this.ui.addManualLogBtn.addEventListener('click', () => this.ui.openManualLogModal());
                 
                 this.ui.prevMonthBtn.addEventListener('click', () => this.handleChangeMonth(-1));
                 this.ui.nextMonthBtn.addEventListener('click', () => this.handleChangeMonth(1));
@@ -222,6 +268,9 @@
 
                 this.ui.cancelTimeBtn.addEventListener('click', () => this.ui.closeTimeModal());
                 this.ui.saveTimeBtn.addEventListener('click', () => this.handleSaveTimeEdit());
+
+                this.ui.cancelManualLogBtn.addEventListener('click', () => this.ui.closeManualLogModal());
+                this.ui.saveManualLogBtn.addEventListener('click', () => this.handleSaveManualLog());
                 
                 this.ui.exportLogsBtn.addEventListener('click', () => this.handleExport());
                 this.ui.importFile.addEventListener('change', (e) => this.handleImport(e));
@@ -352,6 +401,41 @@
                 this.ui.showToast('Time updated!');
                 this.ui.closeTimeModal();
                 this.render();
+            },
+
+            handleSaveManualLog() {
+                const timeInValue = this.ui.manualTimeIn.value;
+                const timeOutValue = this.ui.manualTimeOut.value;
+                const tasksValue = this.ui.manualTasks.value;
+
+                if (!timeInValue || !timeOutValue) {
+                    return alert("Please select both a Time In and Time Out.");
+                }
+                const timeInDate = new Date(timeInValue);
+                const timeOutDate = new Date(timeOutValue);
+
+                if (timeInDate >= timeOutDate) {
+                    return alert("Time Out must be after Time In.");
+                }
+
+                const newLog = {
+                    id: timeInDate.getTime(),
+                    date: this.methods.getLocalYYYYMMDD(timeInDate),
+                    timeIn: timeInDate.toISOString(),
+                    timeOut: timeOutDate.toISOString(),
+                    tasks: tasksValue.split('\n')
+                        .map(text => text.trim())
+                        .filter(text => text)
+                        .map(text => ({ time: timeInDate.toISOString(), text }))
+                };
+
+                const logs = this.store.getLogs();
+                logs.push(newLog);
+                this.store.saveLogs(logs);
+
+                this.ui.closeManualLogModal();
+                this.render();
+                this.ui.showToast('Manual log added!');
             },
 
             handleExport() {
@@ -624,6 +708,15 @@
         TimeLoggerApp.ui.closeTaskModal = function() {
             this.editTaskModal.classList.add('hidden');
             TimeLoggerApp.state.editingTaskInfo = null;
+        };
+        TimeLoggerApp.ui.openManualLogModal = function() {
+            this.manualTimeIn.value = '';
+            this.manualTimeOut.value = '';
+            this.manualTasks.value = '';
+            this.addManualLogModal.classList.remove('hidden');
+        };
+        TimeLoggerApp.ui.closeManualLogModal = function() {
+            this.addManualLogModal.classList.add('hidden');
         };
 
         // --- Start the App ---
