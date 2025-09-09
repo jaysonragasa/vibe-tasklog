@@ -224,7 +224,7 @@
                 const now = new Date();
                 this.state.activeLog = {
                     id: now.getTime(),
-                    date: now.toISOString().split('T')[0],
+                    date: this.methods.getLocalYYYYMMDD(now),
                     timeIn: now.toISOString(),
                     timeOut: null,
                     tasks: []
@@ -335,7 +335,7 @@
                 
                 log[type] = finalDate.toISOString();
                 if (type === 'timeIn') {
-                    log.date = finalDate.toISOString().split('T')[0];
+                    log.date = this.methods.getLocalYYYYMMDD(finalDate);
                 }
                 
                 this.methods.updateLog(log);
@@ -397,6 +397,13 @@
             
             // --- UTILITY METHODS ---
             methods: {
+                 getLocalYYYYMMDD(date) {
+                    const d = new Date(date);
+                    const year = d.getFullYear();
+                    const month = String(d.getMonth() + 1).padStart(2, '0');
+                    const day = String(d.getDate()).padStart(2, '0');
+                    return `${year}-${month}-${day}`;
+                },
                  getLogById(logId) {
                     if (TimeLoggerApp.state.activeLog && TimeLoggerApp.state.activeLog.id === logId) {
                         return TimeLoggerApp.state.activeLog;
