@@ -1,727 +1,679 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Time Log & Task Manager</title>
+    <title>Clock In/Out Task Logger</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        body {
-            font-family: 'Inter', sans-serif;
+        /* Custom Glassmorphism Styles */
+        .glass-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.37);
         }
-        /* Custom scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #1f2937; }
-        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
 
-        .toast {
-            visibility: hidden; opacity: 0;
-            transition: opacity 0.3s, transform 0.3s, visibility 0.3s;
-            transform: translateY(20px);
+        .dark .glass-card {
+            background: rgba(30, 30, 30, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
         }
-        .toast.show { visibility: visible; opacity: 1; transform: translateY(0); }
         
-        /* Style for date/time picker icon */
-        input[type="datetime-local"]::-webkit-calendar-picker-indicator {
-            filter: invert(0.8);
-            cursor: pointer;
+        /* Custom scrollbar for better aesthetics */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.8);
+        }
+
+        /* Basic styles for the contenteditable editor */
+        [contenteditable]:focus {
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.5); /* focus:ring-2 focus:ring-blue-400 */
         }
     </style>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                },
+            },
+        }
+    </script>
 </head>
-<body class="bg-gray-900 text-gray-100">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-200 font-sans transition-colors duration-300">
 
-    <div class="container mx-auto max-w-4xl p-4 sm:p-6 md:p-8">
-        
-        <header class="text-center mb-8 flex items-center justify-center gap-3">
-             <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
-            <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">Time Logger</h1>
+    <div class="container mx-auto p-4 md:p-6 lg:p-8">
+
+        <!-- Header -->
+        <header class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white">Task Logger</h1>
+            <div class="flex items-center space-x-4">
+                <button id="theme-toggle" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700">
+                    <i class="fas fa-sun text-yellow-500"></i>
+                    <i class="fas fa-moon text-blue-500 hidden"></i>
+                </button>
+                 <button id="reset-button" class="hidden bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                    <i class="fas fa-exclamation-triangle mr-2"></i>Reset All Data
+                </button>
+            </div>
         </header>
 
-        <main class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <main class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-            <div id="form-card" class="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700">
-                <h2 class="text-2xl font-semibold mb-6 border-b border-gray-600 pb-3">Session Control</h2>
-
-                <div class="space-y-4">
-                    <div class="mb-6">
-                         <button id="clockInBtn" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-300 ease-in-out">Clock In</button>
-                         <button id="clockOutBtn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-300 ease-in-out hidden">Clock Out</button>
-                    </div>
-
-                    <div id="task-section" class="hidden">
-                        <label for="taskInput" class="block text-sm font-medium text-gray-300 mb-2">Add a Task</label>
-                        <textarea id="taskInput" name="taskInput" rows="3" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 p-3" placeholder="What are you working on?"></textarea>
-                        <button id="addTaskBtn" class="w-full mt-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md transition-transform transform hover:scale-105 duration-300 ease-in-out">Add Task</button>
-                    </div>
-
-                    <div class="pt-4 border-t border-gray-700/50">
-                        <button id="addManualLogBtn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">Add Manual Log</button>
+            <!-- Left Column: Controls & Calendar -->
+            <div class="lg:col-span-1 flex flex-col gap-6">
+                <!-- Clock Controls -->
+                <div class="glass-card p-6 rounded-2xl">
+                    <h2 class="text-xl font-semibold mb-4">Today's Clock</h2>
+                    <div class="flex flex-col sm:flex-row sm:space-x-4 space-y-4 sm:space-y-0">
+                        <button id="clock-in-btn" class="flex-1 bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
+                            <i class="fas fa-play mr-2"></i> Clock In
+                        </button>
+                        <button id="clock-out-btn" class="flex-1 bg-red-500 hover:bg-red-600 text-white font-bold py-3 px-4 rounded-lg transition-colors flex items-center justify-center">
+                            <i class="fas fa-stop mr-2"></i> Clock Out
+                        </button>
                     </div>
                 </div>
-            </div>
 
-            <div class="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 flex flex-col">
-                <h2 class="text-2xl font-semibold mb-4 border-b border-gray-600 pb-3">Log History</h2>
-                
-                <div class="space-y-3 mb-4">
-                    <div class="flex flex-col sm:flex-row gap-3">
-                        <button id="exportLogsBtn" class="w-full text-sm bg-gray-600 hover:bg-gray-500 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">Export Logs</button>
-                        <label for="importFile" class="w-full text-sm text-center cursor-pointer bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200">Import Logs</label>
-                        <input type="file" id="importFile" class="hidden" accept=".json">
-                    </div>
-                    <button id="clearAllBtn" class="w-full text-sm bg-red-800 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg shadow-md transition-colors duration-200 hidden">Clear All Logs</button>
-                </div>
-
-                <div id="calendar-container" class="mb-4">
-                    <div class="flex items-center justify-between mb-4">
-                        <button id="prevMonthBtn" class="p-2 rounded-full hover:bg-gray-700 transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg></button>
-                        <h3 id="monthYear" class="text-lg font-semibold text-center"></h3>
-                        <button id="nextMonthBtn" class="p-2 rounded-full hover:bg-gray-700 transition-colors"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg></button>
+                <!-- Calendar -->
+                <div class="glass-card p-6 rounded-2xl">
+                    <div class="flex justify-between items-center mb-4">
+                        <button id="prev-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><i class="fas fa-chevron-left"></i></button>
+                        <h2 id="month-year" class="text-xl font-semibold"></h2>
+                        <button id="next-month" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700"><i class="fas fa-chevron-right"></i></button>
                     </div>
                     <div id="calendar-grid" class="grid grid-cols-7 gap-1 text-center"></div>
                 </div>
 
-                 <div id="summary-section" class="bg-gray-700/50 p-3 rounded-lg mb-4 text-center border border-gray-600">
-                    <p id="summary-title" class="text-sm font-medium text-gray-300">Total Hours This Week</p>
-                    <p id="summaryHours" class="text-3xl font-bold text-white mt-1">0.00</p>
+                 <!-- Weekly Summary -->
+                 <div class="glass-card p-6 rounded-2xl">
+                    <h2 class="text-xl font-semibold mb-4">Weekly Summary</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-400 mb-2">Total hours for the week of selected date:</p>
+                    <div class="text-3xl font-bold text-blue-500 dark:text-blue-400" id="weekly-hours-total">0.00 hours</div>
+                    <button id="export-week-btn" class="mt-4 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
+                        <i class="fas fa-file-export mr-2"></i> Export Week
+                    </button>
                 </div>
-                 
-                <div id="filter-info" class="mb-4 text-center hidden">
-                    <p id="filter-text" class="text-gray-300 text-sm"></p>
-                    <button id="showAllBtn" class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold mt-1">Show All Logs</button>
+            </div>
+
+            <!-- Right Column: Daily Log -->
+            <div class="lg:col-span-2 glass-card p-6 rounded-2xl">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center mb-4 gap-4">
+                    <h2 class="text-xl font-semibold">Log for: <span id="selected-date-display" class="text-blue-500 dark:text-blue-400"></span></h2>
+                    <div class="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg text-center">
+                        <span class="text-sm">Total Hours:</span>
+                        <span id="daily-hours-total" class="font-bold text-lg ml-2">0.00</span>
+                    </div>
                 </div>
-                
-                <div id="logHistory" class="space-y-6 flex-grow overflow-y-auto pr-2 max-h-[60vh] md:max-h-[45vh]"></div>
+
+                <!-- Time Inputs -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label for="clock-in-time" class="block text-sm font-medium mb-1">Clock In Time</label>
+                        <input type="time" id="clock-in-time" class="w-full bg-white/20 dark:bg-black/20 border-none rounded-lg p-2 focus:ring-2 focus:ring-blue-400">
+                    </div>
+                    <div>
+                        <label for="clock-out-time" class="block text-sm font-medium mb-1">Clock Out Time</label>
+                        <input type="time" id="clock-out-time" class="w-full bg-white/20 dark:bg-black/20 border-none rounded-lg p-2 focus:ring-2 focus:ring-blue-400">
+                    </div>
+                </div>
+
+                <!-- Task Logs -->
+                <h3 class="font-semibold mb-2">Tasks</h3>
+                <div id="task-list" class="space-y-3 mb-4 max-h-96 overflow-y-auto pr-2">
+                    <!-- Tasks will be dynamically inserted here -->
+                </div>
+
+                <!-- New Task Editor -->
+                <div class="mt-6">
+                    <h3 class="font-semibold mb-2">Add New Task</h3>
+                    <div class="bg-white/20 dark:bg-black/20 rounded-lg">
+                        <div class="wysiwyg-toolbar p-2 border-b border-gray-300 dark:border-gray-600 flex items-center gap-2">
+                            <button class="wysiwyg-btn p-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600" data-command="bold"><i class="fas fa-bold"></i></button>
+                            <button class="wysiwyg-btn p-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600" data-command="italic"><i class="fas fa-italic"></i></button>
+                            <button class="wysiwyg-btn p-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600" data-command="underline"><i class="fas fa-underline"></i></button>
+                            <button class="wysiwyg-btn p-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600" data-command="insertUnorderedList"><i class="fas fa-list-ul"></i></button>
+                            <button class="wysiwyg-btn p-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600" data-command="insertOrderedList"><i class="fas fa-list-ol"></i></button>
+                        </div>
+                        <div id="new-task-editor" contenteditable="true" class="p-4 min-h-[100px] rounded-b-lg"></div>
+                    </div>
+                    <button id="add-task-btn" class="mt-4 w-full bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">
+                        <i class="fas fa-plus mr-2"></i> Add Task
+                    </button>
+                </div>
+
+                <!-- Import/Export -->
+                <div class="mt-8 border-t border-gray-300 dark:border-gray-600 pt-6 flex flex-col sm:flex-row gap-4">
+                     <button id="import-btn" class="flex-1 bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
+                        <i class="fas fa-file-import mr-2"></i> Import Logs
+                    </button>
+                    <input type="file" id="import-file" class="hidden" accept=".json">
+                    <button id="export-btn" class="flex-1 bg-gray-700 hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-lg transition-colors flex items-center justify-center">
+                        <i class="fas fa-download mr-2"></i> Export All Logs
+                    </button>
+                </div>
             </div>
         </main>
     </div>
-    
-    <!-- Add Manual Log Modal -->
-    <div id="addManualLogModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 w-full max-w-md">
-            <h2 class="text-2xl font-semibold mb-6">Add Manual Log Entry</h2>
-            <div class="space-y-4">
-                <div>
-                    <label for="manualTimeIn" class="block text-sm font-medium text-gray-300 mb-2">Time In</label>
-                    <input type="datetime-local" id="manualTimeIn" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 p-3">
-                </div>
-                <div>
-                    <label for="manualTimeOut" class="block text-sm font-medium text-gray-300 mb-2">Time Out</label>
-                    <input type="datetime-local" id="manualTimeOut" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 p-3">
-                </div>
-                <div>
-                    <label for="manualTasks" class="block text-sm font-medium text-gray-300 mb-2">Tasks (one per line)</label>
-                    <textarea id="manualTasks" rows="4" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 p-3"></textarea>
-                </div>
-            </div>
-            <div class="mt-8 flex gap-4">
-                <button id="saveManualLogBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md">Save Log</button>
-                <button id="cancelManualLogBtn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg shadow-md">Cancel</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Edit Task Modal -->
-    <div id="editTaskModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 w-full max-w-md">
-            <h2 class="text-2xl font-semibold mb-2">Edit Task</h2>
-            <p id="editTaskTimeRange" class="text-sm text-gray-400 mb-4"></p>
-            <textarea id="editTaskInput" rows="4" class="w-full bg-gray-700 text-white border-gray-600 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 p-3"></textarea>
-            <div class="mt-6 flex gap-4">
-                <button id="saveTaskEditBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">Save Task</button>
-                <button id="cancelTaskEditBtn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">Cancel</button>
+    <div id="edit-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 hidden">
+        <div class="glass-card w-full max-w-2xl p-6 rounded-2xl animate-fade-in">
+            <h2 class="text-xl font-semibold mb-4">Edit Task</h2>
+            <div class="bg-white/20 dark:bg-black/20 rounded-lg">
+                <div class="modal-wysiwyg-toolbar p-2 border-b border-gray-300 dark:border-gray-600 flex items-center gap-2">
+                    <button class="modal-wysiwyg-btn p-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600" data-command="bold"><i class="fas fa-bold"></i></button>
+                    <button class="modal-wysiwyg-btn p-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600" data-command="italic"><i class="fas fa-italic"></i></button>
+                    <button class="modal-wysiwyg-btn p-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600" data-command="underline"><i class="fas fa-underline"></i></button>
+                    <button class="modal-wysiwyg-btn p-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600" data-command="insertUnorderedList"><i class="fas fa-list-ul"></i></button>
+                    <button class="modal-wysiwyg-btn p-2 rounded hover:bg-gray-300 dark:hover:bg-gray-600" data-command="insertOrderedList"><i class="fas fa-list-ol"></i></button>
+                </div>
+                <div id="modal-task-editor" contenteditable="true" class="p-4 min-h-[150px] rounded-b-lg max-h-64 overflow-y-auto"></div>
             </div>
-        </div>
-    </div>
-    
-    <!-- Edit Time Modal -->
-    <div id="editTimeModal" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 hidden z-50">
-        <div class="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 w-full max-w-xs">
-            <h2 id="editTimeTitle" class="text-2xl font-semibold mb-6 text-center">Select Time</h2>
-            <div class="flex items-center justify-center gap-2 text-2xl font-mono text-white">
-                <select id="timeHour" class="bg-gray-700 rounded p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-center cursor-pointer"></select>
-                <span>:</span>
-                <select id="timeMinute" class="bg-gray-700 rounded p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-center cursor-pointer"></select>
-                <select id="timeAmPm" class="bg-gray-700 rounded p-2 focus:outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-center cursor-pointer"></select>
-            </div>
-            <div class="mt-8 flex gap-4">
-                <button id="saveTimeBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">Set Time</button>
-                <button id="cancelTimeBtn" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-bold py-3 px-4 rounded-lg shadow-md transition-colors">Cancel</button>
+            <div class="flex justify-end space-x-4 mt-6">
+                <button id="cancel-edit-btn" class="bg-gray-500 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Cancel</button>
+                <button id="save-edit-btn" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded-lg transition-colors">Save Changes</button>
             </div>
         </div>
     </div>
 
-    <div id="toast" class="toast fixed bottom-5 right-5 bg-green-500 text-white py-2 px-4 rounded-lg shadow-lg">
-        Task Added!
-    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // STATE
+    let logs = {};
+    let selectedDate = new Date();
+    let calendarDate = new Date();
+    let editingTaskId = null;
+
+    // DOM ELEMENTS
+    const themeToggle = document.getElementById('theme-toggle');
+    const clockInBtn = document.getElementById('clock-in-btn');
+    const clockOutBtn = document.getElementById('clock-out-btn');
+    const calendarGrid = document.getElementById('calendar-grid');
+    const monthYearDisplay = document.getElementById('month-year');
+    const prevMonthBtn = document.getElementById('prev-month');
+    const nextMonthBtn = document.getElementById('next-month');
+    const selectedDateDisplay = document.getElementById('selected-date-display');
+    const clockInTimeInput = document.getElementById('clock-in-time');
+    const clockOutTimeInput = document.getElementById('clock-out-time');
+    const dailyHoursTotal = document.getElementById('daily-hours-total');
+    const weeklyHoursTotal = document.getElementById('weekly-hours-total');
+    const taskList = document.getElementById('task-list');
+    const newTaskEditor = document.getElementById('new-task-editor');
+    const addTaskBtn = document.getElementById('add-task-btn');
+    const importBtn = document.getElementById('import-btn');
+    const importFileInput = document.getElementById('import-file');
+    const exportBtn = document.getElementById('export-btn');
+    const exportWeekBtn = document.getElementById('export-week-btn');
+    const resetButton = document.getElementById('reset-button');
     
-    <script>
-        const TimeLoggerApp = {
-            // --- STATE ---
-            state: {
-                activeLog: null,
-                currentDate: new Date(),
-                selectedDate: null,
-                editingTaskInfo: null,
-                editingTimeInfo: null,
-                summaryInterval: null,
-            },
+    // Modal elements
+    const editModal = document.getElementById('edit-modal');
+    const modalTaskEditor = document.getElementById('modal-task-editor');
+    const saveEditBtn = document.getElementById('save-edit-btn');
+    const cancelEditBtn = document.getElementById('cancel-edit-btn');
 
-            // --- UI ELEMENTS ---
-            ui: {
-                // Main form
-                clockInBtn: document.getElementById('clockInBtn'),
-                clockOutBtn: document.getElementById('clockOutBtn'),
-                taskSection: document.getElementById('task-section'),
-                taskInput: document.getElementById('taskInput'),
-                addTaskBtn: document.getElementById('addTaskBtn'),
-                addManualLogBtn: document.getElementById('addManualLogBtn'),
-                // History
-                logHistoryContainer: document.getElementById('logHistory'),
-                summaryTitle: document.getElementById('summary-title'),
-                summaryHoursEl: document.getElementById('summaryHours'),
-                // Calendar
-                prevMonthBtn: document.getElementById('prevMonthBtn'),
-                nextMonthBtn: document.getElementById('nextMonthBtn'),
-                monthYearEl: document.getElementById('monthYear'),
-                calendarGrid: document.getElementById('calendar-grid'),
-                filterInfo: document.getElementById('filter-info'),
-                filterText: document.getElementById('filter-text'),
-                showAllBtn: document.getElementById('showAllBtn'),
-                // Modals
-                addManualLogModal: document.getElementById('addManualLogModal'),
-                manualTimeIn: document.getElementById('manualTimeIn'),
-                manualTimeOut: document.getElementById('manualTimeOut'),
-                manualTasks: document.getElementById('manualTasks'),
-                saveManualLogBtn: document.getElementById('saveManualLogBtn'),
-                cancelManualLogBtn: document.getElementById('cancelManualLogBtn'),
+    // --- INITIALIZATION ---
+    function init() {
+        loadLogs();
+        setupTheme();
+        setupEventListeners();
+        renderCalendar();
+        renderDailyLog();
+        checkResetParam();
+    }
 
-                editTaskModal: document.getElementById('editTaskModal'),
-                editTaskTimeRange: document.getElementById('editTaskTimeRange'),
-                editTaskInput: document.getElementById('editTaskInput'),
-                saveTaskEditBtn: document.getElementById('saveTaskEditBtn'),
-                cancelTaskEditBtn: document.getElementById('cancelTaskEditBtn'),
-                editTimeModal: document.getElementById('editTimeModal'),
-                editTimeTitle: document.getElementById('editTimeTitle'),
-                timeHourSelect: document.getElementById('timeHour'),
-                timeMinuteSelect: document.getElementById('timeMinute'),
-                timeAmPmSelect: document.getElementById('timeAmPm'),
-                saveTimeBtn: document.getElementById('saveTimeBtn'),
-                cancelTimeBtn: document.getElementById('cancelTimeBtn'),
-                // Toast
-                toast: document.getElementById('toast'),
-                // Import/Export/Clear
-                exportLogsBtn: document.getElementById('exportLogsBtn'),
-                importFile: document.getElementById('importFile'),
-                clearAllBtn: document.getElementById('clearAllBtn'),
-            },
+    function checkResetParam() {
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('showReset') === 'true') {
+            resetButton.classList.remove('hidden');
+        }
+    }
 
-            // --- DATA STORE (LocalStorage) ---
-            store: {
-                getLogs: () => JSON.parse(localStorage.getItem('timeLogs')) || [],
-                saveLogs: (logs) => localStorage.setItem('timeLogs', JSON.stringify(logs)),
-                getActiveLog: () => JSON.parse(localStorage.getItem('activeLog')),
-                saveActiveLog: (log) => localStorage.setItem('activeLog', JSON.stringify(log)),
-                clearActiveLog: () => localStorage.removeItem('activeLog'),
-            },
+    function setupTheme() {
+        if (localStorage.getItem('theme') === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+            themeToggle.querySelector('.fa-sun').classList.add('hidden');
+            themeToggle.querySelector('.fa-moon').classList.remove('hidden');
+        } else {
+            document.documentElement.classList.remove('dark');
+            themeToggle.querySelector('.fa-sun').classList.remove('hidden');
+            themeToggle.querySelector('.fa-moon').classList.add('hidden');
+        }
+    }
 
-            // --- INITIALIZATION ---
-            init() {
-                this.bindEvents();
-                this.ui.populateTimeSelectors();
-                this.state.activeLog = this.store.getActiveLog();
+    function setupEventListeners() {
+        themeToggle.addEventListener('click', toggleTheme);
+        clockInBtn.addEventListener('click', clockIn);
+        clockOutBtn.addEventListener('click', clockOut);
+        prevMonthBtn.addEventListener('click', () => changeMonth(-1));
+        nextMonthBtn.addEventListener('click', () => changeMonth(1));
+        clockInTimeInput.addEventListener('change', updateTime);
+        clockOutTimeInput.addEventListener('change', updateTime);
+        addTaskBtn.addEventListener('click', addTask);
+        importBtn.addEventListener('click', () => importFileInput.click());
+        importFileInput.addEventListener('change', importLogs);
+        exportBtn.addEventListener('click', exportLogs);
+        exportWeekBtn.addEventListener('click', exportWeek);
+        resetButton.addEventListener('click', resetAllData);
 
-                if (this.state.activeLog) {
-                    this.ui.showClockInState();
-                } else {
-                    this.ui.showClockOutState();
-                }
-
-                const urlParams = new URLSearchParams(window.location.search);
-                if (urlParams.get('wcb') === '1') {
-                    this.ui.clearAllBtn.classList.remove('hidden');
-                }
-                
-                this.render();
-            },
-
-            // --- EVENT BINDING ---
-            bindEvents() {
-                this.ui.clockInBtn.addEventListener('click', () => this.handleClockIn());
-                this.ui.clockOutBtn.addEventListener('click', () => this.handleClockOut());
-                this.ui.addTaskBtn.addEventListener('click', () => this.handleAddTask());
-                this.ui.addManualLogBtn.addEventListener('click', () => this.ui.openManualLogModal());
-                
-                this.ui.prevMonthBtn.addEventListener('click', () => this.handleChangeMonth(-1));
-                this.ui.nextMonthBtn.addEventListener('click', () => this.handleChangeMonth(1));
-                this.ui.calendarGrid.addEventListener('click', (e) => this.handleDateSelect(e));
-                this.ui.showAllBtn.addEventListener('click', () => this.handleShowAll());
-
-                this.ui.logHistoryContainer.addEventListener('click', (e) => this.handleLogHistoryClick(e));
-                
-                this.ui.cancelTaskEditBtn.addEventListener('click', () => this.ui.closeTaskModal());
-                this.ui.saveTaskEditBtn.addEventListener('click', () => this.handleSaveTaskEdit());
-
-                this.ui.cancelTimeBtn.addEventListener('click', () => this.ui.closeTimeModal());
-                this.ui.saveTimeBtn.addEventListener('click', () => this.handleSaveTimeEdit());
-
-                this.ui.cancelManualLogBtn.addEventListener('click', () => this.ui.closeManualLogModal());
-                this.ui.saveManualLogBtn.addEventListener('click', () => this.handleSaveManualLog());
-                
-                this.ui.exportLogsBtn.addEventListener('click', () => this.handleExport());
-                this.ui.importFile.addEventListener('change', (e) => this.handleImport(e));
-                this.ui.clearAllBtn.addEventListener('click', () => this.handleClearAll());
-            },
-
-            // --- EVENT HANDLERS ---
-            handleClockIn() {
-                if (this.state.activeLog) return;
-                const now = new Date();
-                this.state.activeLog = {
-                    id: now.getTime(),
-                    date: this.methods.getLocalYYYYMMDD(now),
-                    timeIn: now.toISOString(),
-                    timeOut: null,
-                    tasks: []
-                };
-                this.store.saveActiveLog(this.state.activeLog);
-                this.ui.showClockInState();
-                this.render();
-            },
-
-            handleClockOut() {
-                if (!this.state.activeLog) return;
-                this.state.activeLog.timeOut = new Date().toISOString();
-                const logs = this.store.getLogs();
-                logs.push(this.state.activeLog);
-                this.store.saveLogs(logs);
-
-                this.state.activeLog = null;
-                this.store.clearActiveLog();
-                this.ui.showClockOutState();
-                this.render();
-            },
-            
-            handleAddTask() {
-                const taskText = this.ui.taskInput.value.trim();
-                if (taskText === '' || !this.state.activeLog) return;
-                
-                this.state.activeLog.tasks.push({ time: new Date().toISOString(), text: taskText });
-                this.store.saveActiveLog(this.state.activeLog);
-                
-                this.ui.taskInput.value = '';
-                this.ui.showToast('Task added!');
-                this.render();
-            },
-
-            handleChangeMonth(direction) {
-                this.state.currentDate.setMonth(this.state.currentDate.getMonth() + direction);
-                this.ui.renderCalendar(this.state, this.store.getLogs());
-            },
-
-            handleDateSelect(e) {
-                const dayButton = e.target.closest('button[data-date]');
-                if (!dayButton) return;
-                const clickedDate = new Date(dayButton.dataset.date);
-                if (this.state.selectedDate && this.state.selectedDate.toDateString() === clickedDate.toDateString()) {
-                    this.state.selectedDate = null;
-                } else {
-                    this.state.selectedDate = clickedDate;
-                }
-                this.render();
-            },
-
-            handleShowAll() {
-                this.state.selectedDate = null;
-                this.render();
-            },
-            
-            handleLogHistoryClick(e) {
-                const editTimeBtn = e.target.closest('.edit-time-btn');
-                const editTaskBtn = e.target.closest('.edit-task-btn');
-
-                if (editTimeBtn) {
-                    const logId = parseInt(editTimeBtn.dataset.id);
-                    const type = editTimeBtn.dataset.type;
-                    const log = this.methods.getLogById(logId);
-                    if (log) this.ui.openTimePicker(log, type);
-                }
-                if (editTaskBtn) {
-                    const logId = parseInt(editTaskBtn.dataset.id);
-                    const taskIndex = parseInt(editTaskBtn.dataset.taskIndex);
-                    const log = this.methods.getLogById(logId);
-                    if (log && log.tasks[taskIndex]) {
-                        this.state.editingTaskInfo = { logId, taskIndex };
-                        this.ui.openTaskModal(log, log.tasks[taskIndex]);
-                    }
-                }
-            },
-
-            handleSaveTaskEdit() {
-                if (!this.state.editingTaskInfo) return;
-                const { logId, taskIndex } = this.state.editingTaskInfo;
-                const newText = this.ui.editTaskInput.value.trim();
-                
-                this.methods.updateTask(logId, taskIndex, newText);
-                this.ui.showToast("Task updated!");
-                this.ui.closeTaskModal();
-                this.render();
-            },
-
-            handleSaveTimeEdit() {
-                if (!this.state.editingTimeInfo) return;
-                const { log, type } = this.state.editingTimeInfo;
-
-                let hour = parseInt(this.ui.timeHourSelect.value);
-                const minute = parseInt(this.ui.timeMinuteSelect.value);
-                const ampm = this.ui.timeAmPmSelect.value;
-                if (ampm === 'PM' && hour < 12) hour += 12;
-                if (ampm === 'AM' && hour === 12) hour = 0;
-
-                const finalDate = new Date(log[type] || log.timeIn);
-                finalDate.setHours(hour, minute, 0, 0);
-
-                if (type === 'timeIn' && log.timeOut && finalDate >= new Date(log.timeOut)) {
-                    return alert('Time In must be before Time Out.');
-                }
-                if (type === 'timeOut' && finalDate <= new Date(log.timeIn)) {
-                    return alert('Time Out must be after Time In.');
-                }
-                
-                log[type] = finalDate.toISOString();
-                if (type === 'timeIn') {
-                    log.date = this.methods.getLocalYYYYMMDD(finalDate);
-                }
-                
-                this.methods.updateLog(log);
-                this.ui.showToast('Time updated!');
-                this.ui.closeTimeModal();
-                this.render();
-            },
-
-            handleSaveManualLog() {
-                const timeInValue = this.ui.manualTimeIn.value;
-                const timeOutValue = this.ui.manualTimeOut.value;
-                const tasksValue = this.ui.manualTasks.value;
-
-                if (!timeInValue || !timeOutValue) {
-                    return alert("Please select both a Time In and Time Out.");
-                }
-                const timeInDate = new Date(timeInValue);
-                const timeOutDate = new Date(timeOutValue);
-
-                if (timeInDate >= timeOutDate) {
-                    return alert("Time Out must be after Time In.");
-                }
-
-                const newLog = {
-                    id: timeInDate.getTime(),
-                    date: this.methods.getLocalYYYYMMDD(timeInDate),
-                    timeIn: timeInDate.toISOString(),
-                    timeOut: timeOutDate.toISOString(),
-                    tasks: tasksValue.split('\n')
-                        .map(text => text.trim())
-                        .filter(text => text)
-                        .map(text => ({ time: timeInDate.toISOString(), text }))
-                };
-
-                const logs = this.store.getLogs();
-                logs.push(newLog);
-                this.store.saveLogs(logs);
-
-                this.ui.closeManualLogModal();
-                this.render();
-                this.ui.showToast('Manual log added!');
-            },
-
-            handleExport() {
-                const logs = this.store.getLogs();
-                if (logs.length === 0) {
-                    return this.ui.showToast('No logs to export.');
-                }
-                const blob = new Blob([JSON.stringify(logs, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `timelogs_backup_${new Date().toISOString().slice(0,10)}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            },
-
-            handleImport(event) {
-                const file = event.target.files[0];
-                if (!file) return;
-                const reader = new FileReader();
-                reader.onload = (e) => {
-                    try {
-                        const importedLogs = JSON.parse(e.target.result);
-                        if (!Array.isArray(importedLogs) || !importedLogs.every(log => 'id' in log && 'timeIn' in log)) {
-                           throw new Error("Invalid log file format.");
-                        }
-                        const currentLogs = this.store.getLogs();
-                        const currentLogIds = new Set(currentLogs.map(log => log.id));
-                        const newLogs = importedLogs.filter(log => !currentLogIds.has(log.id));
-                        
-                        this.store.saveLogs([...currentLogs, ...newLogs]);
-                        
-                        this.render();
-                        this.ui.showToast(`${newLogs.length} new logs imported successfully!`);
-                    } catch (error) {
-                        alert('Error importing file: ' + error.message);
-                    } finally {
-                        event.target.value = null; // Reset file input
-                    }
-                };
-                reader.readAsText(file);
-            },
-
-            handleClearAll() {
-                if (confirm('Are you sure you want to permanently delete ALL logs? This action cannot be undone.')) {
-                    this.store.saveLogs([]); // Clears completed logs
-                    if (this.state.activeLog) {
-                        this.state.activeLog = null;
-                        this.store.clearActiveLog(); // Clears active log
-                        this.ui.showClockOutState();
-                    }
-                    this.ui.showToast('All logs have been cleared.');
-                    this.render();
-                }
-            },
-            
-            // --- RENDER & CALCULATION ---
-            render() {
-                const allLogs = this.store.getLogs();
-                this.ui.renderCalendar(this.state, allLogs);
-                this.ui.renderLogs(this.state, allLogs);
-                this.ui.calculateAndDisplayWeeklyHours(this.state, allLogs);
-            },
-            
-            // --- UTILITY METHODS ---
-            methods: {
-                 getLocalYYYYMMDD(date) {
-                    const d = new Date(date);
-                    const year = d.getFullYear();
-                    const month = String(d.getMonth() + 1).padStart(2, '0');
-                    const day = String(d.getDate()).padStart(2, '0');
-                    return `${year}-${month}-${day}`;
-                },
-                 getLogById(logId) {
-                    if (TimeLoggerApp.state.activeLog && TimeLoggerApp.state.activeLog.id === logId) {
-                        return TimeLoggerApp.state.activeLog;
-                    }
-                    return TimeLoggerApp.store.getLogs().find(log => log.id === logId);
-                },
-                updateLog(updatedLog) {
-                    if (TimeLoggerApp.state.activeLog && TimeLoggerApp.state.activeLog.id === updatedLog.id) {
-                        TimeLoggerApp.state.activeLog = updatedLog;
-                        TimeLoggerApp.store.saveActiveLog(updatedLog);
-                    } else {
-                        const logs = TimeLoggerApp.store.getLogs();
-                        const index = logs.findIndex(l => l.id === updatedLog.id);
-                        if (index > -1) {
-                            logs[index] = updatedLog;
-                            TimeLoggerApp.store.saveLogs(logs);
-                        }
-                    }
-                },
-                 updateTask(logId, taskIndex, newText) {
-                    const log = this.getLogById(logId);
-                    if (log && log.tasks[taskIndex] && newText) {
-                        log.tasks[taskIndex].text = newText;
-                        this.updateLog(log);
-                    }
-                },
-            },
-        };
-        
-        // --- UI METHODS (DOM Manipulation only) ---
-        TimeLoggerApp.ui.formatTime = (isoString) => {
-            if (!isoString) return 'N/A';
-            return new Date(isoString).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-        };
-        TimeLoggerApp.ui.showClockInState = function() {
-            this.clockInBtn.classList.add('hidden');
-            this.clockOutBtn.classList.remove('hidden');
-            this.taskSection.classList.remove('hidden');
-            TimeLoggerApp.state.summaryInterval = setInterval(() => TimeLoggerApp.ui.calculateAndDisplayWeeklyHours(TimeLoggerApp.state, TimeLoggerApp.store.getLogs()), 5000);
-        };
-        TimeLoggerApp.ui.showClockOutState = function() {
-            this.clockInBtn.classList.remove('hidden');
-            this.clockOutBtn.classList.add('hidden');
-            this.taskSection.classList.add('hidden');
-            this.taskInput.value = '';
-            if (TimeLoggerApp.state.summaryInterval) {
-                clearInterval(TimeLoggerApp.state.summaryInterval);
-                TimeLoggerApp.state.summaryInterval = null;
-            }
-        };
-        TimeLoggerApp.ui.showToast = function(message) {
-            this.toast.textContent = message;
-            this.toast.classList.add('show');
-            setTimeout(() => this.toast.classList.remove('show'), 2500);
-        };
-        TimeLoggerApp.ui.renderCalendar = function(state, allLogs) {
-            const { currentDate, selectedDate, activeLog } = state;
-            const year = currentDate.getFullYear();
-            const month = currentDate.getMonth();
-            this.monthYearEl.textContent = `${currentDate.toLocaleDateString('en-US', { month: 'long' })} ${year}`;
-            this.calendarGrid.innerHTML = '';
-            const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-            daysOfWeek.forEach(day => this.calendarGrid.innerHTML += `<div class="font-semibold text-xs text-gray-400 uppercase">${day}</div>`);
-            
-            const firstDayOfMonth = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month + 1, 0).getDate();
-            const logDates = new Set(allLogs.map(log => log.date));
-            if (activeLog) logDates.add(activeLog.date);
-
-            for (let i = 0; i < firstDayOfMonth; i++) this.calendarGrid.innerHTML += '<div></div>';
-            
-            for (let day = 1; day <= daysInMonth; day++) {
-                const dayDate = new Date(year, month, day);
-                const dayDateString = TimeLoggerApp.methods.getLocalYYYYMMDD(dayDate);
-                let classes = 'p-1 h-8 w-8 flex items-center justify-center rounded-full text-sm transition-colors duration-200 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-indigo-500';
-                if (logDates.has(dayDateString)) classes += ' font-bold text-indigo-300';
-                if (selectedDate && dayDate.toDateString() === selectedDate.toDateString()) classes += ' bg-indigo-600 text-white';
-                else if (!selectedDate && dayDate.toDateString() === new Date().toDateString()) classes += ' bg-gray-600 text-white';
-                else classes += ' hover:bg-gray-700';
-                
-                this.calendarGrid.innerHTML += `<button data-date="${dayDate.toISOString()}" class="${classes}">${day}</button>`;
-            }
-        };
-        TimeLoggerApp.ui.renderLogs = function(state, allLogs) {
-            const { activeLog, selectedDate } = state;
-            const logsByDate = {};
-            allLogs.forEach(log => {
-                if (!logsByDate[log.date]) logsByDate[log.date] = [];
-                logsByDate[log.date].push(log);
+        // WYSIWYG event listeners
+        document.querySelectorAll('.wysiwyg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const command = btn.dataset.command;
+                document.execCommand(command, false, null);
+                newTaskEditor.focus();
             });
-            if (activeLog) {
-                if (!logsByDate[activeLog.date]) logsByDate[activeLog.date] = [];
-                logsByDate[activeLog.date].unshift(activeLog);
+        });
+
+        // Modal event listeners
+        document.querySelectorAll('.modal-wysiwyg-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const command = btn.dataset.command;
+                document.execCommand(command, false, null);
+                modalTaskEditor.focus();
+            });
+        });
+        saveEditBtn.addEventListener('click', saveTaskEdit);
+        cancelEditBtn.addEventListener('click', closeEditModal);
+        editModal.addEventListener('click', (e) => {
+            if (e.target === editModal) {
+                closeEditModal();
             }
-            this.logHistoryContainer.innerHTML = '';
-            if (selectedDate) {
-                this.filterInfo.classList.remove('hidden');
-                this.filterText.textContent = `Showing logs for ${selectedDate.toLocaleDateString('en-US', { dateStyle: 'long' })}`;
-                const dateStr = TimeLoggerApp.methods.getLocalYYYYMMDD(selectedDate);
-                if (logsByDate[dateStr]) {
-                    logsByDate[dateStr].forEach(log => this.logHistoryContainer.appendChild(this.createLogCard(log)));
+        });
+    }
+
+    // --- DATA HANDLING ---
+    function loadLogs() {
+        const storedLogs = localStorage.getItem('taskLogs');
+        logs = storedLogs ? JSON.parse(storedLogs) : {};
+    }
+
+    function saveLogs() {
+        localStorage.setItem('taskLogs', JSON.stringify(logs));
+        renderCalendar();
+        renderDailyLog();
+    }
+
+    function getDateKey(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function getDayLog(date) {
+        const key = getDateKey(date);
+        if (!logs[key]) {
+            logs[key] = { clockIn: null, clockOut: null, tasks: [] };
+        }
+        return logs[key];
+    }
+    
+    // --- THEME ---
+    function toggleTheme() {
+        const isDark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        setupTheme();
+    }
+    
+    // --- CLOCK & TIME ---
+    function clockIn() {
+        const now = new Date();
+        const todayLog = getDayLog(now);
+        if (todayLog.clockIn === null) {
+            todayLog.clockIn = now.toISOString();
+            selectedDate = now; // Switch view to today
+            saveLogs();
+        } else {
+            alert("You have already clocked in for today.");
+        }
+    }
+
+    function clockOut() {
+        const now = new Date();
+        const todayLog = getDayLog(now);
+        if (todayLog.clockIn !== null && todayLog.clockOut === null) {
+            todayLog.clockOut = now.toISOString();
+            selectedDate = now; // Switch view to today
+            saveLogs();
+        } else if (todayLog.clockIn === null) {
+            alert("You need to clock in first.");
+        } else {
+            alert("You have already clocked out for today.");
+        }
+    }
+
+    function updateTime(event) {
+        const dayLog = getDayLog(selectedDate);
+        const [hours, minutes] = event.target.value.split(':');
+        const newDate = new Date(selectedDate);
+        newDate.setHours(hours, minutes, 0, 0);
+
+        if (event.target.id === 'clock-in-time') {
+            dayLog.clockIn = newDate.toISOString();
+        } else {
+            dayLog.clockOut = newDate.toISOString();
+        }
+        saveLogs();
+    }
+
+    // --- CALENDAR ---
+    function renderCalendar() {
+        calendarGrid.innerHTML = '';
+        calendarDate.setDate(1);
+        monthYearDisplay.textContent = new Intl.DateTimeFormat(navigator.language, { month: 'long', year: 'numeric' }).format(calendarDate);
+        
+        const firstDayOfMonth = calendarDate.getDay();
+        const daysInMonth = new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 0).getDate();
+
+        // Weekday headers
+        const weekdays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        weekdays.forEach(day => {
+            const dayEl = document.createElement('div');
+            dayEl.className = 'font-semibold text-sm text-gray-500';
+            dayEl.textContent = day;
+            calendarGrid.appendChild(dayEl);
+        });
+        
+        // Blank days
+        for (let i = 0; i < firstDayOfMonth; i++) {
+            calendarGrid.appendChild(document.createElement('div'));
+        }
+
+        // Calendar days
+        for (let day = 1; day <= daysInMonth; day++) {
+            const dayEl = document.createElement('button');
+            dayEl.textContent = day;
+            const date = new Date(calendarDate.getFullYear(), calendarDate.getMonth(), day);
+            const dateKey = getDateKey(date);
+
+            let classes = 'p-2 rounded-full aspect-square flex items-center justify-center transition-colors ';
+            if (dateKey === getDateKey(new Date())) {
+                classes += 'bg-blue-500 text-white ';
+            } else if (dateKey === getDateKey(selectedDate)) {
+                 classes += 'bg-blue-200 dark:bg-blue-800 ';
+            } else {
+                classes += 'hover:bg-gray-200 dark:hover:bg-gray-700 ';
+            }
+
+            if (logs[dateKey] && (logs[dateKey].clockIn || logs[dateKey].tasks.length > 0)) {
+                classes += ' border-2 border-green-400 dark:border-green-500';
+            }
+            
+            dayEl.className = classes;
+            dayEl.addEventListener('click', () => {
+                selectedDate = date;
+                renderDailyLog();
+                renderCalendar();
+            });
+            calendarGrid.appendChild(dayEl);
+        }
+    }
+
+    function changeMonth(offset) {
+        calendarDate.setMonth(calendarDate.getMonth() + offset);
+        renderCalendar();
+    }
+
+    // --- DAILY LOG & TASKS ---
+    function renderDailyLog() {
+        selectedDateDisplay.textContent = new Intl.DateTimeFormat(navigator.language, { dateStyle: 'long' }).format(selectedDate);
+        const dayLog = getDayLog(selectedDate);
+        
+        clockInTimeInput.value = dayLog.clockIn ? new Date(dayLog.clockIn).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+        clockOutTimeInput.value = dayLog.clockOut ? new Date(dayLog.clockOut).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+        
+        renderTaskList();
+        calculateHours();
+    }
+
+    function renderTaskList() {
+        taskList.innerHTML = '';
+        const dayLog = getDayLog(selectedDate);
+        if (dayLog.tasks.length === 0) {
+            taskList.innerHTML = `<p class="text-gray-500 italic">No tasks logged for this day.</p>`;
+            return;
+        }
+
+        dayLog.tasks.forEach(task => {
+            const taskEl = document.createElement('div');
+            taskEl.className = 'p-3 rounded-lg bg-white/30 dark:bg-black/30 flex justify-between items-start';
+            
+            const contentEl = document.createElement('div');
+            contentEl.innerHTML = task.content;
+            contentEl.className = 'prose dark:prose-invert max-w-none';
+            
+            const actionsEl = document.createElement('div');
+            actionsEl.className = 'flex space-x-2 ml-4 flex-shrink-0';
+            
+            const editBtn = document.createElement('button');
+            editBtn.innerHTML = '<i class="fas fa-pencil-alt"></i>';
+            editBtn.className = 'text-blue-500 hover:text-blue-700 p-2';
+            editBtn.onclick = () => openEditModal(task.id);
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            deleteBtn.className = 'text-red-500 hover:text-red-700 p-2';
+            deleteBtn.onclick = () => deleteTask(task.id);
+
+            actionsEl.appendChild(editBtn);
+            actionsEl.appendChild(deleteBtn);
+            
+            taskEl.appendChild(contentEl);
+            taskEl.appendChild(actionsEl);
+            taskList.appendChild(taskEl);
+        });
+    }
+
+    function addTask() {
+        const content = newTaskEditor.innerHTML.trim();
+        if (!content) return;
+
+        const dayLog = getDayLog(selectedDate);
+        dayLog.tasks.push({
+            id: Date.now(),
+            content: content
+        });
+        newTaskEditor.innerHTML = '';
+        saveLogs();
+    }
+
+    function deleteTask(taskId) {
+        if (!confirm('Are you sure you want to delete this task?')) return;
+        const dayLog = getDayLog(selectedDate);
+        dayLog.tasks = dayLog.tasks.filter(t => t.id !== taskId);
+        saveLogs();
+    }
+
+    function openEditModal(taskId) {
+        const dayLog = getDayLog(selectedDate);
+        const task = dayLog.tasks.find(t => t.id === taskId);
+        if (task) {
+            editingTaskId = taskId;
+            modalTaskEditor.innerHTML = task.content;
+            editModal.classList.remove('hidden');
+        }
+    }
+    
+    function closeEditModal() {
+        editingTaskId = null;
+        editModal.classList.add('hidden');
+    }
+
+    function saveTaskEdit() {
+        if (!editingTaskId) return;
+
+        const content = modalTaskEditor.innerHTML.trim();
+        if (!content) {
+            alert("Task content cannot be empty.");
+            return;
+        }
+
+        const dayLog = getDayLog(selectedDate);
+        const task = dayLog.tasks.find(t => t.id === editingTaskId);
+        if (task) {
+            task.content = content;
+            saveLogs();
+        }
+        closeEditModal();
+    }
+
+    // --- CALCULATIONS ---
+    function calculateHours() {
+        // Daily
+        const dayLog = getDayLog(selectedDate);
+        let dailyHours = 0;
+        if (dayLog.clockIn && dayLog.clockOut) {
+            const start = new Date(dayLog.clockIn);
+            const end = new Date(dayLog.clockOut);
+            if (end > start) {
+                dailyHours = (end - start) / 1000 / 60 / 60;
+            }
+        }
+        dailyHoursTotal.textContent = dailyHours.toFixed(2);
+
+        // Weekly
+        let weeklyHours = 0;
+        const startOfWeek = new Date(selectedDate);
+        startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay()); // Assuming Sunday is start of week
+        
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(startOfWeek);
+            date.setDate(startOfWeek.getDate() + i);
+            const log = logs[getDateKey(date)];
+            if (log && log.clockIn && log.clockOut) {
+                const start = new Date(log.clockIn);
+                const end = new Date(log.clockOut);
+                 if (end > start) {
+                    weeklyHours += (end - start) / 1000 / 60 / 60;
+                }
+            }
+        }
+        weeklyHoursTotal.textContent = `${weeklyHours.toFixed(2)} hours`;
+    }
+    
+    // --- IMPORT/EXPORT & RESET ---
+    function importLogs(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const importedLogs = JSON.parse(e.target.result);
+                // Simple validation
+                if (typeof importedLogs !== 'object' || importedLogs === null) throw new Error("Invalid format");
+                
+                // Merge logs
+                Object.assign(logs, importedLogs);
+                saveLogs();
+                alert('Logs imported successfully!');
+            } catch (error) {
+                alert('Error importing file. Please ensure it is a valid JSON file from this app.');
+            }
+        };
+        reader.readAsText(file);
+    }
+    
+    function exportLogs() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logs, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `task_logs_export_${getDateKey(new Date())}.json`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+    
+    function exportWeek() {
+        const startOfWeek = new Date(selectedDate);
+        startOfWeek.setDate(selectedDate.getDate() - selectedDate.getDay());
+        let exportText = `Weekly Log for the week starting ${startOfWeek.toLocaleDateString()}\n\n`;
+        let totalHours = 0;
+
+        for (let i = 0; i < 7; i++) {
+            const date = new Date(startOfWeek);
+            date.setDate(startOfWeek.getDate() + i);
+            const dateKey = getDateKey(date);
+            const log = logs[dateKey];
+
+            exportText += `--- ${date.toLocaleDateString(navigator.language, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })} ---\n`;
+            
+            if (log) {
+                const clockInTime = log.clockIn ? new Date(log.clockIn).toLocaleTimeString() : 'N/A';
+                const clockOutTime = log.clockOut ? new Date(log.clockOut).toLocaleTimeString() : 'N/A';
+                
+                exportText += `Time In: ${clockInTime}\n`;
+                exportText += `Time Out: ${clockOutTime}\n`;
+
+                let dayHours = 0;
+                 if (log.clockIn && log.clockOut) {
+                    const start = new Date(log.clockIn);
+                    const end = new Date(log.clockOut);
+                    if (end > start) {
+                        dayHours = (end - start) / 1000 / 60 / 60;
+                        totalHours += dayHours;
+                    }
+                }
+                exportText += `Daily Hours: ${dayHours.toFixed(2)}\n\n`;
+
+                if (log.tasks.length > 0) {
+                    exportText += 'Tasks:\n';
+                    log.tasks.forEach(task => {
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = task.content;
+                        exportText += `- ${tempDiv.textContent || tempDiv.innerText || ""}\n`;
+                    });
                 }
             } else {
-                this.filterInfo.classList.add('hidden');
-                const sortedDates = Object.keys(logsByDate).sort((a,b) => new Date(b) - new Date(a));
-                sortedDates.forEach(dateStr => {
-                    const date = new Date(dateStr);
-                    const localDate = new Date(date.getTime() + date.getTimezoneOffset() * 60000); // Adjust for display
-                    const formattedDate = localDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-                    const dateHeader = document.createElement('h3');
-                    dateHeader.className = "text-lg font-semibold text-indigo-300 pb-2 border-b border-gray-700";
-                    dateHeader.textContent = formattedDate;
-                    this.logHistoryContainer.appendChild(dateHeader);
-                    logsByDate[dateStr].forEach(log => this.logHistoryContainer.appendChild(this.createLogCard(log)));
-                });
+                exportText += "No data logged.\n";
             }
-            if (this.logHistoryContainer.innerHTML === '') {
-                this.logHistoryContainer.innerHTML = `<p class="text-gray-400 text-center py-8">No logs found for this period.</p>`;
-            }
-        };
-        TimeLoggerApp.ui.createLogCard = function(log) {
-            const card = document.createElement('div');
-            card.className = 'bg-gray-700/50 p-4 rounded-lg border border-gray-600';
-            const timeOutTime = log.timeOut ? new Date(log.timeOut) : new Date();
-            const duration = timeOutTime.getTime() - new Date(log.timeIn).getTime();
-            const hours = duration > 0 ? (duration / (1000 * 60 * 60)).toFixed(2) : '0.00';
-            const isInProgress = !log.timeOut;
-            let tasksHtml = '<p class="text-gray-400 text-sm">No tasks added.</p>';
-            if(log.tasks && log.tasks.length > 0) {
-                tasksHtml = log.tasks.map((task, index) => `
-                    <div class="flex items-center justify-between gap-3 py-2 border-b border-gray-600/50 last:border-b-0">
-                        <div class="flex items-start gap-3"><span class="text-xs text-gray-400 font-mono mt-1">${this.formatTime(task.time)}</span><p class="text-gray-200">${task.text}</p></div>
-                        <button data-id="${log.id}" data-task-index="${index}" class="edit-task-btn text-gray-400 hover:text-indigo-400 p-1 flex-shrink-0"><svg class="w-5 h-5 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>
-                    </div>`).join('');
-            }
-            const timeInEditBtn = `<button data-id="${log.id}" data-type="timeIn" class="edit-time-btn text-gray-400 hover:text-indigo-400 p-1 ml-2"><svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>`;
-            const timeOutEditBtn = isInProgress ? '' : `<button data-id="${log.id}" data-type="timeOut" class="edit-time-btn text-gray-400 hover:text-indigo-400 p-1 ml-2"><svg class="w-4 h-4 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg></button>`;
-            card.innerHTML = `
-                <div class="flex justify-between items-start pb-3 border-b border-gray-600">
-                    <div>
-                        <p class="text-sm text-gray-300 flex items-center"><strong>Time In:</strong><span class="ml-2">${this.formatTime(log.timeIn)}</span> ${timeInEditBtn}</p>
-                        <p class="text-sm text-gray-300 flex items-center"><strong>Time Out:</strong><span class="ml-2">${isInProgress ? '<span class="text-green-400">In Progress...</span>' : this.formatTime(log.timeOut)}</span> ${timeOutEditBtn}</p>
-                    </div>
-                    <div class="text-right"><p class="font-bold text-lg text-white">${hours} hrs</p></div>
-                </div>
-                <div class="mt-4"><h4 class="font-semibold text-gray-200 mb-2">Tasks</h4><div class="space-y-2">${tasksHtml}</div></div>`;
-            return card;
-        };
-        TimeLoggerApp.ui.calculateAndDisplayWeeklyHours = function(state, allLogs) {
-            const { selectedDate, activeLog } = state;
-            const referenceDate = selectedDate || new Date();
-            const dayOfWeek = referenceDate.getDay();
-            const startOfWeek = new Date(referenceDate);
-            startOfWeek.setDate(referenceDate.getDate() - dayOfWeek);
-            startOfWeek.setHours(0, 0, 0, 0);
-            const endOfWeek = new Date(startOfWeek);
-            endOfWeek.setDate(startOfWeek.getDate() + 6);
-            endOfWeek.setHours(23, 59, 59, 999);
-            this.summaryTitle.textContent = selectedDate ? `Total Hours for Week of ${startOfWeek.toLocaleDateString('en-US', {month: 'short', day: 'numeric'})}` : `Total Hours This Week`;
-            const weeklyLogs = allLogs.filter(log => new Date(log.timeIn) >= startOfWeek && new Date(log.timeIn) <= endOfWeek);
-            let totalMilliseconds = weeklyLogs.reduce((total, log) => total + (new Date(log.timeOut).getTime() - new Date(log.timeIn).getTime()), 0);
-            if (activeLog && new Date(activeLog.timeIn) >= startOfWeek && new Date(activeLog.timeIn) <= endOfWeek) {
-                totalMilliseconds += new Date().getTime() - new Date(activeLog.timeIn).getTime();
-            }
-            this.summaryHoursEl.textContent = (totalMilliseconds / 3600000).toFixed(2);
-        };
-        TimeLoggerApp.ui.populateTimeSelectors = function() {
-            for (let i = 1; i <= 12; i++) this.timeHourSelect.innerHTML += `<option value="${i}">${String(i).padStart(2, '0')}</option>`;
-            for (let i = 0; i < 60; i++) this.timeMinuteSelect.innerHTML += `<option value="${i}">${String(i).padStart(2, '0')}</option>`;
-            this.timeAmPmSelect.innerHTML = `<option value="AM">AM</option><option value="PM">PM</option>`;
-        };
-        TimeLoggerApp.ui.openTimePicker = function(log, type) {
-            TimeLoggerApp.state.editingTimeInfo = { log, type };
-            const date = new Date(log[type] || log.timeIn);
-            let hour = date.getHours();
-            const minute = date.getMinutes();
-            const ampm = hour >= 12 ? 'PM' : 'AM';
-            hour = hour % 12 || 12;
-            this.editTimeTitle.textContent = type === 'timeIn' ? 'Edit Time In' : 'Edit Time Out';
-            this.timeHourSelect.value = hour;
-            this.timeMinuteSelect.value = minute;
-            this.timeAmPmSelect.value = ampm;
-            this.editTimeModal.classList.remove('hidden');
-        };
-        TimeLoggerApp.ui.closeTimeModal = function() {
-            this.editTimeModal.classList.add('hidden');
-            TimeLoggerApp.state.editingTimeInfo = null;
-        };
-        TimeLoggerApp.ui.openTaskModal = function(log, task) {
-            this.editTaskTimeRange.textContent = `Session: ${this.formatTime(log.timeIn)} - ${log.timeOut ? this.formatTime(log.timeOut) : 'Now'}`;
-            this.editTaskInput.value = task.text;
-            this.editTaskModal.classList.remove('hidden');
-            this.editTaskInput.focus();
-        };
-        TimeLoggerApp.ui.closeTaskModal = function() {
-            this.editTaskModal.classList.add('hidden');
-            TimeLoggerApp.state.editingTaskInfo = null;
-        };
-        TimeLoggerApp.ui.openManualLogModal = function() {
-            this.manualTimeIn.value = '';
-            this.manualTimeOut.value = '';
-            this.manualTasks.value = '';
-            this.addManualLogModal.classList.remove('hidden');
-        };
-        TimeLoggerApp.ui.closeManualLogModal = function() {
-            this.addManualLogModal.classList.add('hidden');
-        };
+            exportText += "\n";
+        }
+        exportText += `------------------\nTotal Weekly Hours: ${totalHours.toFixed(2)}\n`;
 
-        // --- Start the App ---
-        document.addEventListener('DOMContentLoaded', () => TimeLoggerApp.init());
-    </script>
+        const dataStr = "data:text/plain;charset=utf-8," + encodeURIComponent(exportText);
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", `weekly_log_${getDateKey(startOfWeek)}.txt`);
+        document.body.appendChild(downloadAnchorNode);
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
+    function resetAllData() {
+        if (confirm('DANGER: This will delete ALL your logs permanently. Are you absolutely sure?')) {
+            localStorage.removeItem('taskLogs');
+            logs = {};
+            selectedDate = new Date();
+            calendarDate = new Date();
+            saveLogs(); // This will re-render everything
+            alert('All data has been reset.');
+        }
+    }
+
+    // --- START THE APP ---
+    init();
+});
+</script>
+
 </body>
 </html>
-
