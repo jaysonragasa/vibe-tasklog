@@ -594,6 +594,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- AI ENHANCEMENT ---
 
     function openAIModal(editorElement) {
+        const urlParams = new URLSearchParams(window.location.search);
+        const apiKey = urlParams.get('apiKey');
+
+        if (!apiKey) {
+            alert("AI feature requires a Gemini API key. Please add `?apiKey=YOUR_GEMINI_KEY` to the end of the URL and reload the page.");
+            return;
+        }
+
         const originalContent = editorElement.innerHTML;
         if (!originalContent.trim()) {
             alert("Please add some text to the editor before using AI enhancement.");
@@ -606,13 +614,13 @@ document.addEventListener('DOMContentLoaded', () => {
         aiLoader.classList.remove('hidden');
         aiModal.classList.remove('hidden');
         
-        enhanceWithAI(editorElement.innerText)
+        enhanceWithAI(editorElement.innerText, apiKey)
             .then(enhancedContent => {
                 aiEnhancedText.innerHTML = enhancedContent;
             })
             .catch(error => {
                 console.error("AI Enhancement Error:", error);
-                aiEnhancedText.innerHTML = `<p class="text-red-400">Sorry, an error occurred while enhancing the text. Please try again later.</p>`;
+                aiEnhancedText.innerHTML = `<p class="text-red-400">Sorry, an error occurred. This could be due to an invalid API key or a network issue. Please check the console for details.</p>`;
             })
             .finally(() => {
                 aiLoader.classList.add('hidden');
@@ -632,8 +640,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // This function now uses the Gemini API for enhancement.
-    async function enhanceWithAI(text, retries = 3, delay = 1000) {
-        const apiKey = ""; // API key will be provided by the environment
+    async function enhanceWithAI(text, apiKey, retries = 3, delay = 1000) {
         const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
 
         const systemPrompt = `You are a professional assistant helping a user refine their daily work log. Your task is to take the user's raw notes and enhance them for clarity, professionalism, and conciseness.
@@ -662,7 +669,7 @@ document.addEventListener('DOMContentLoaded', () => {
                  if (response.status === 429 || response.status >= 500) { // Throttling or server error
                     if (retries > 0) {
                         await new Promise(res => setTimeout(res, delay));
-                        return enhanceWithAI(text, retries - 1, delay * 2); // Exponential backoff
+                        return enhanceWithAI(text, apiKey, retries - 1, delay * 2); // Exponential backoff
                     }
                 }
                 throw new Error(`API request failed with status ${response.status}`);
@@ -687,7 +694,7 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch (error) {
              if (retries > 0) {
                 await new Promise(res => setTimeout(res, delay));
-                return enhanceWithAI(text, retries - 1, delay * 2);
+                return enhanceWithAI(text, apiKey, retries - 1, delay * 2);
             }
             console.error("Error calling AI API:", error);
             throw error; // Re-throw the error after final retry
