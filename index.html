@@ -640,6 +640,10 @@ document.addEventListener('DOMContentLoaded', () => {
         
         aiEnhancedText.innerHTML = '';
         aiLoader.classList.remove('hidden');
+        aiRegenerateBtn.disabled = true;
+        aiAcceptBtn.disabled = true;
+        aiRegenerateBtn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i>Generating...`;
+
 
         enhanceWithAI(originalText, apiKey, customPrompt || null)
             .then(enhancedContent => {
@@ -651,6 +655,9 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .finally(() => {
                 aiLoader.classList.add('hidden');
+                aiRegenerateBtn.disabled = false;
+                aiAcceptBtn.disabled = false;
+                aiRegenerateBtn.innerHTML = `<i class="fas fa-sync-alt mr-2"></i>Regenerate`;
             });
     }
 
@@ -872,4 +879,5 @@ document.addEventListener('DOMContentLoaded', () => {
 
 </body>
 </html>
+
 
